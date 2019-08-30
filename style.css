@@ -1,0 +1,46 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    font-family: 'Conv_Future Sallow';
+}
+
+body {
+    overflow: hidden;
+}
+
+canvas {
+    width: 100%;
+    height: 100vh;
+}
+
+.fps {
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.controls {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    display: none;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.controls__button {
+    padding: 1rem;
+    border: none;
+    background-color: #000;
+    color: #fff;
+    transition: .2s;
+    user-select: none;
+}
+
+.controls__button:active {
+    background-color: #faf;
+}
