@@ -6,14 +6,18 @@ function generateRoad() {
     const count = Math.floor(seed.unit() * 20) + 5; 
     const maxAngle = 50;
 
-    roads.push({
-        x1: 400,
-        x2: 1000,
-        y1: 350,
-        y2: 350,
-    });
+    let angle = Math.PI * 2 * seed.unit();
 
-    let angle = 0;
+    let startX1 = canvas.width * seed.unit();
+    let startY1 = canvas.height * seed.unit();
+    let startLength = seed.unit() * 1000 + 400;
+
+    roads.push({
+        x1: startX1,
+        x2: startX1 + Math.cos(angle) * startLength,
+        y1: startY1,
+        y2: startY1 + Math.sin(angle) * startLength
+    });
 
     for (let i = 0; i < count; i++) {
         const lastRoad = roads[i];
@@ -47,7 +51,7 @@ function generateRoad() {
 }
 
 function createTriggers() {
-    const id = 0 //Math.floor(buildings.length * seed.unit());
+    const id = Math.floor(buildings.length * seed.unit());
     const shop = buildings[id];
 
     shop.text = 'shop';
@@ -68,8 +72,6 @@ function createTriggers() {
         }
     });
 }
-
-generateRoad();
 
 function drawBuildings() {
     ctx.strokeStyle = stonePattern;

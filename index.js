@@ -132,6 +132,9 @@ function init() {
     ships.push(createShip(true));
     ships.push(createShip(true));
     ships.push(createShip(true));
+
+    generateRoad();
+    renderCitiesPoints();
 }
 
 const seedValue = Math.random().toString(36).substr(2);
@@ -428,6 +431,7 @@ function gameLoop() {
     drawParticles();
 
     drawShop();
+    drawMap();
     drawInventory();
 
     showFPS();
@@ -451,6 +455,7 @@ const keys = {
     a: 65,
     s: 83,
     d: 68,
+    m: 77,
     space: 32
 }
 
@@ -512,6 +517,12 @@ function handleKey(e) {
 
         case keys.d:
             changeShipState(playerShip, 'isRightRotate', value);
+            break;
+
+        case keys.m:
+            mapData.isOpen = e.type === 'keyup'
+                ? !mapData.isOpen
+                : mapData.isOpen;
             break;
 
         case keys.space:
