@@ -20,3 +20,4 @@ function fileLoader(req) {
 }
 
 createTexture();
+createPlanet();

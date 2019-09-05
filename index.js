@@ -59,6 +59,7 @@ function fpsCtrl(fps, callback) {
     }
 }
 
+let envData = {x:500, y:500, a:0};
 let ships = [];
 let bullets = [];
 
@@ -260,6 +261,8 @@ function drawParticles() {
     });
 }
 
+const maxAngle = 360 * Math.PI / 180;
+
 function updateShip() {
     ships.forEach(ship => {
         if (ship.isForward && !ship.isSlowDown) {
@@ -297,10 +300,18 @@ function updateShip() {
 
         if (ship.isLeftRotate) {
             ship.currentAngle -= ship.rotateSpeed;
+
+            if (ship.currentAngle < 0) {
+                ship.currentAngle = maxAngle + ship.currentAngle;
+            }
         }
 
         if (ship.isRightRotate) {
             ship.currentAngle += ship.rotateSpeed;
+
+            if (ship.currentAngle > maxAngle) {
+                ship.currentAngle = ship.currentAngle - maxAngle;
+            }
         }
 
         if (ship.isShoting) {
@@ -426,6 +437,7 @@ function gameLoop() {
     drawLandscape();
     drawRoads();
     drawBuildings();
+    drawPlanets();
     drawBullets();
     drawShips();
     drawParticles();

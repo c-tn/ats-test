@@ -92,16 +92,16 @@ let planetGenerator = (function() {
                 textureData, x, y, width,
                 Math.round(color * (r - 0.3)),
                 Math.round(color * (g - 0.3)),
-                Math.round(color * (b - 0.3)),
+                Math.round(color * b),
                 255
             );
         }
         else {
             setColor(
                 textureData, x, y, width,
-                Math.round(color * (r - 0.1)),
-                Math.round(color * (g - 0.1)),
-                Math.round(color * (b - 0.1)),
+                Math.round(color * (r - 0.3)),
+                Math.round(color * (g - 0.3)),
+                Math.round(color * b),
                 255
             );
         }
@@ -151,10 +151,6 @@ let planetGenerator = (function() {
 
         rotate -= rotateSpeed;
 
-        if (rotateSpeed > 0) {
-            requestAnimationFrame(generatePlanet);
-        }
-
         ctx.putImageData(imageData, 0, 0);
 
         return {
@@ -165,6 +161,7 @@ let planetGenerator = (function() {
 
     return {
         generateNoise,
-        generatePlanet
+        generatePlanet,
+        rotateSpeed
     } 
 })();

@@ -41,6 +41,8 @@ function createTexture() {
 
     const color = textureColors[Math.floor(seed.unit() * textureColors.length)];
 
+    envData.currentColor = color;
+
     let planetNoise = planetGenerator.generateNoise(seed.unit(), 0.05, 10, canvas.width, canvas.height, color.r, color.g, color.b);
     let stoneNoise = planetGenerator.generateNoise(seed.unit(), 0.15, 20, canvas.width, canvas.height, 0.4, 0.4, 0.4);
     let lightStoneNoise = planetGenerator.generateNoise(seed.unit(), 0.15, 20, canvas.width, canvas.height, 0.7, 0.7, 0.7);
@@ -52,7 +54,7 @@ function createTexture() {
         planetTextureImg.src = textureCanvas.toDataURL();
 
         planetTextureImg.onload = () => {
-            planetTexture = planetTextureImg;
+            envData.currentTexture = planetTextureImg;
             resolve();
         };
     });
@@ -93,7 +95,7 @@ function drawLandscape() {
             const xPos = i - camera.x + camera.width / 2;
             const yPos = j - camera.y + camera.height / 2;
 
-            ctx.drawImage(planetTexture, xPos, yPos);
+            ctx.drawImage(envData.currentTexture, xPos, yPos);
         }
     }
 }

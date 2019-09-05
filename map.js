@@ -37,6 +37,7 @@ function drawMap() {
 
     ctx.fillStyle = '#555';
 
+    // Cities
     mapData.citiesPoints.forEach(city => {
         ctx.save();
             ctx.translate(
@@ -53,6 +54,7 @@ function drawMap() {
         ctx.restore();
     });
 
+    // Ships
     ships.forEach(ship => {
         if (ship === playerShip) {
             ctx.fillStyle = '#0a0';
@@ -70,9 +72,27 @@ function drawMap() {
             ctx.fillRect(
                 ship.x / 80000 * mapData.width,
                 ship.y / 40000 * mapData.height,
-                2.5,
-                2.5
+                2,
+                2
             );
         ctx.restore();
     });
+
+    
+
+    ctx.save();
+        ctx.fillStyle = '#fff';
+
+        ctx.translate(
+            canvas.width / 2 - mapData.width / 2,
+            canvas.height / 2 - mapData.height / 2
+        );
+
+        ctx.fillRect(
+            envData.x / 80000 * mapData.width,
+            envData.y / 40000 * mapData.height,
+            4,
+            4
+        );
+    ctx.restore();
 }
