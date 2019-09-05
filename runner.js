@@ -19,5 +19,6 @@ function fileLoader(req) {
     });
 }
 
+generateEnv(0, 0);
 createTexture();
 createPlanet();

@@ -59,7 +59,10 @@ function fpsCtrl(fps, callback) {
     }
 }
 
-let envData = {x:500, y:500, a:0};
+let envData = {
+    chunks: [],
+    x:500, y:500, a:0
+};
 let ships = [];
 let bullets = [];
 
@@ -138,7 +141,7 @@ function init() {
     renderCitiesPoints();
 }
 
-const seedValue = Math.random().toString(36).substr(2);
+const seedValue = 'q' || Math.random().toString(36).substr(2);
 const seed = new RNG(seedValue);
 
 // FPS
