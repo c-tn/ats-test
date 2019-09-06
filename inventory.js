@@ -13,13 +13,6 @@ let inventoryData = {
     cells: []
 }
 
-let shopData = {
-    isOpen: false,
-    width: 810,
-    height: 310,
-    cells: []
-}
-
 function convertMouseToGameCoords({ x, y }) {
     return {
         x: canvas.width * (x / window.innerWidth),
@@ -113,9 +106,9 @@ function getCellByMouseCoords({ x, y }) {
         y < cell.y + inventoryData.inventoryOffsetY + inventoryData.cellSize
     );
 
-    if (!shopData.isOpen || res) return res;
+    if (!playerShip.currentTrigger || !playerShip.currentTrigger.isOpen || res) return res;
 
-    return shopData.cells.find(cell =>
+    return playerShip.currentTrigger.items.find(cell =>
         x > cell.x - inventoryData.inventoryOffsetX &&
         x < cell.x - inventoryData.inventoryOffsetX + inventoryData.cellSize &&
         y > cell.y - inventoryData.inventoryOffsetY &&
@@ -306,18 +299,18 @@ function createInventory(ship) {
 }
 
 function drawShop() {
-    if (!shopData.isOpen) return;
+    if (!playerShip.currentTrigger || !playerShip.currentTrigger.isOpen) return;
 
     ctx.fillStyle = 'rgba(0, 0, 0, .5)';
 
     ctx.fillRect(
-        canvas.width / 2 - shopData.width / 2 - inventoryData.inventoryOffsetX,
-        canvas.height / 2 - shopData.height / 2 - inventoryData.inventoryOffsetY,
-        shopData.width,
-        shopData.height
+        canvas.width / 2 - inventoryData.width / 2 - inventoryData.inventoryOffsetX,
+        canvas.height / 2 - inventoryData.height / 2 - inventoryData.inventoryOffsetY,
+        inventoryData.width,
+        inventoryData.height
     );
 
-    shopData.cells.forEach(cell => {
+    playerShip.currentTrigger.items.forEach(cell => {
         if (cell.item) {
             ctx.fillStyle = 'rgba(150, 150, 150, .5)';
         }
@@ -334,14 +327,14 @@ function drawShop() {
     });
 }
 
-function createShopStuff(id) {
-    const seed = new RNG(id.toString(36).substr(2));
+function createShopStuff(shop) {
+    const seed = new RNG(shop.id.toString(36).substr(2));
 
     const stuffCount = Math.floor(seed.unit() * 15) + 3;
     const size = inventoryData.cellSize;
     const gap = inventoryData.cellGap;
 
-    const itemsInRow = Math.floor(shopData.width / size);
+    const itemsInRow = Math.floor(inventoryData.width / size);
 
     for (let i = 0, row = 0, counter = 0, itemCounter = 0; i < 96; i++) {
         if (i && i % itemsInRow === 0) {
@@ -349,8 +342,8 @@ function createShopStuff(id) {
             counter = 0;
         }
 
-        let x = canvas.width / 2 - shopData.width / 2 + counter * size + gap;
-        let y = canvas.height / 2 - shopData.height / 2 + row + gap;
+        let x = canvas.width / 2 - inventoryData.width / 2 + counter * size + gap;
+        let y = canvas.height / 2 - inventoryData.height / 2 + row + gap;
 
         let item = null;
 
@@ -378,11 +371,11 @@ function createShopStuff(id) {
             }
         }
 
-        shopData.cells.push({
+        shop.items.push({
             x,
             y,
             type: slotTypes.shop,
-            index: shopData.cells.length,
+            index: playerShip.currentTrigger.items.length,
             item
         });
 

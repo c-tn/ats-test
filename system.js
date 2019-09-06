@@ -74,7 +74,7 @@ function createSystemPlanets(system) {
             name: `P-${ system.seed.unitString() }`,
             parent: system.name,
             seed: system.seed.unitString(),
-            color: textureColors[colorId],
+            color: textureColors[colorId]
         };
 
         newPlanet.x = Math.cos(newPlanet.currentAngle) * newPlanet.r;

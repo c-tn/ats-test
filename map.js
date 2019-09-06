@@ -9,7 +9,7 @@ function renderCitiesPoints() {
     let [ minX, minY ] = [ Infinity, Infinity ];
     let [ maxX, maxY ] = [ -Infinity, -Infinity ];
 
-    roads.forEach(road => {
+    envData.current.roads.forEach(road => {
         if (road.x1 < minX) minX = road.x1;
         if (road.x2 > maxX) maxX = road.x2;
 
@@ -78,7 +78,7 @@ function drawMap() {
     }
 
     // Ships
-    ships.forEach(ship => {
+    envData.current.ships.forEach(ship => {
         if (ship === playerShip) {
             ctx.fillStyle = '#0a0';
         }

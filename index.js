@@ -64,7 +64,6 @@ let envData = {
     current: {},
     x:500, y:500, a:0
 };
-let ships = [];
 let bullets = [];
 
 const itemTypes = {
@@ -85,8 +84,8 @@ function createShip(isRandom) {
     let ship = {
         id: seedNum,
         sprite: null,
-        x: isRandom ? canvas.width * seed.unit() : 500,
-        y: isRandom ? canvas.height * seed.unit() : 500,
+        x: isRandom ? 80000 * seed.unit() - 40000 : 0,
+        y: isRandom ? 40000 * seed.unit() - 20000 : 0,
         currentAngle: 0,
         rotateSpeed: 0.05,
         currentSpeed: 0,
@@ -122,7 +121,7 @@ function createShip(isRandom) {
 let playerShip = null;
 let camera = null;
 
-function init() {
+async function init() {
     playerShip = createShip();
     camera = {
         x: playerShip.x,
@@ -131,15 +130,13 @@ function init() {
         height: canvas.height
     }
     
-    ships.push(playerShip);
-    ships.push(createShip(true));
-    ships.push(createShip(true));
-    ships.push(createShip(true));
-    ships.push(createShip(true));
-    ships.push(createShip(true));
+    envData.currentTexture = await createPlanetTexture(currentPlanet);
 
-    generateRoad();
+    pushShips(currentPlanet);
+    generateRoad(currentPlanet);
     renderCitiesPoints();
+
+    currentPlanet.ships.push(playerShip);
 }
 
 const seedValue = Math.random().toString(36).substr(2);
@@ -201,7 +198,7 @@ function drawShips() {
         setShadowsParam(40, 20, 3, 'rgba(0, 0, 0, .3)');
     }
     
-    ships = ships.filter(ship => {
+    envData.current.ships = envData.current.ships.filter(ship => {
         ctx.save();
             ctx.translate(
                 ship.x - camera.x + camera.width / 2,
@@ -270,7 +267,7 @@ function drawParticles() {
 const maxAngle = 360 * Math.PI / 180;
 
 function updateShip() {
-    ships.forEach(ship => {
+    envData.current.ships.forEach(ship => {
         if (ship.isForward && !ship.isSlowDown) {
             ship.currentSpeed += ship.velocity;
 
@@ -382,7 +379,7 @@ function drawBullets() {
             ctx.fillRect(-25, 0, 50, 2);
         ctx.restore();
         
-        const collideWith = ships.find(ship =>
+        const collideWith = envData.current.ships.find(ship =>
             bullet.x > ship.x - ship.sprite.width / 2 &&
             bullet.x < ship.x + ship.sprite.width / 2 &&
             bullet.y > ship.y - ship.sprite.height / 2 &&
@@ -455,17 +452,33 @@ function gameLoop() {
     showFPS();
 }
 
-function wheelActions(wheelDelta) {
+function popPlayerShip() {
+    envData.current.ships = envData.current.ships.filter(
+        ship => ship.id !== playerShip.id
+    );
+}
+
+async function wheelActions(wheelDelta) {
     if (currentPlanet && wheelDelta < -5) {
+        popPlayerShip();
+
         envData.current = currentSystem;
 
         playerShip.x = currentPlanet.x + currentPlanet.size;
         playerShip.y = currentPlanet.y + currentPlanet.size;
 
+        if (!currentSystem.ships) {
+            currentSystem.ships = [];
+        }
+
+        currentSystem.ships.push(playerShip);
+
         currentPlanet = null;
     }
     else if (!currentPlanet && wheelDelta > 5) {
-        currentPlanet = Object.values(currentSystem.planets).find(planet => {
+        const findedPlanet = Object.values(currentSystem.planets).find(planet => {
+            if (planet.name[0] === 'V') return;
+
             const centerX = planet.x + planet.size;
             const centerY = planet.y + planet.size;
 
@@ -475,10 +488,24 @@ function wheelActions(wheelDelta) {
             return Math.sqrt(dx + dy) < planet.size;
         });
 
+        if (!findedPlanet) return;
+
+        popPlayerShip();
+
+        envData.currentTexture = await createPlanetTexture(findedPlanet);
+
+        currentPlanet = findedPlanet;
+        envData.current = currentPlanet;
+
         playerShip.x = 0;
         playerShip.y = 0;
 
-        envData.current = currentPlanet;
+        if (!currentPlanet.ships) {
+            pushShips(currentPlanet);
+            generateRoad(currentPlanet);
+        }
+
+        currentPlanet.ships.push(playerShip);
     }
 }
 
@@ -540,8 +567,8 @@ function handleKey(e) {
                 ? !inventoryData.isOpen
                 : inventoryData.isOpen;
 
-            if (shopData.isOpen) {
-                shopData.isOpen = false;
+            if (playerShip.currentTrigger && playerShip.currentTrigger.isOpen) {
+                playerShip.currentTrigger.isOpen = false;
                 inventoryData.isOpen = false;
             }
 

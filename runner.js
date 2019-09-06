@@ -9,11 +9,11 @@ function fileLoader(req) {
     files.total++;
 
     new Promise(req)
-    .then(() => {
+    .then(async () => {
         files.loaded++;
 
         if (files.loaded >= files.total) {
-            init();
+            await init();
             currentCtrl = fpsCtrl(100, gameLoop);
         }
     });
@@ -29,4 +29,4 @@ envData.current = envData.chunks[currentChunk.name]
     .systems[currentSystem.name]
     .planets[currentPlanet.name];
 
-createTexture();
+createAnotherTexture();

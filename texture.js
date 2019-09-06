@@ -32,30 +32,12 @@ const textureColors = [
     }
 ]
 
-function createTexture() {
+function createAnotherTexture() {
     let textureCanvas = document.createElement('canvas');
     let ctx = textureCanvas.getContext('2d');
 
-    textureCanvas.width = canvas.width;
-    textureCanvas.height = canvas.height;
-
-    const { color } = envData.current;
-
-    let planetNoise = planetGenerator.generateNoise(seed.unit(), 0.05, 10, canvas.width, canvas.height, color.r, color.g, color.b);
     let stoneNoise = planetGenerator.generateNoise(seed.unit(), 0.15, 20, canvas.width, canvas.height, 0.4, 0.4, 0.4);
     let lightStoneNoise = planetGenerator.generateNoise(seed.unit(), 0.15, 20, canvas.width, canvas.height, 0.7, 0.7, 0.7);
-
-    fileLoader(resolve => {
-        ctx.putImageData(planetNoise.imageData, 0, 0);
-
-        let planetTextureImg = new Image();
-        planetTextureImg.src = textureCanvas.toDataURL();
-
-        planetTextureImg.onload = () => {
-            envData.currentTexture = planetTextureImg;
-            resolve();
-        };
-    });
 
     fileLoader(resolve => {
         ctx.putImageData(stoneNoise.imageData, 0, 0);
@@ -82,6 +64,30 @@ function createTexture() {
             resolve();
         };
     });
+}
+
+async function createPlanetTexture(planet) {
+    let textureCanvas = document.createElement('canvas');
+    let ctx = textureCanvas.getContext('2d');
+
+    textureCanvas.width = canvas.width;
+    textureCanvas.height = canvas.height;
+
+    const { color } = planet;
+
+    let planetNoise = planetGenerator.generateNoise(seed.unit(), 0.05, 10, canvas.width, canvas.height, color.r, color.g, color.b);
+    
+    ctx.putImageData(planetNoise.imageData, 0, 0);
+
+    let planetTextureImg = new Image();
+    planetTextureImg.src = textureCanvas.toDataURL();
+
+    return new Promise(res => {
+        planetTextureImg.onload = () => {
+            res(planetTextureImg);
+        };
+    })
+
 }
 
 function drawLandscape() {

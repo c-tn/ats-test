@@ -1,8 +1,5 @@
-const buildings = [];
-const roads = []
-const triggers = []
-
-function generateRoad() {
+function generateRoad(planet) {
+    const seed = new RNG(planet.seed);
     const count = Math.floor(seed.unit() * 20) + 5; 
     const maxAngle = 50;
 
@@ -12,7 +9,11 @@ function generateRoad() {
     let startY1 = canvas.height * seed.unit();
     let startLength = seed.unit() * 1000 + 400;
 
-    roads.push({
+    planet.roads = [];
+    planet.buildings = [];
+    planet.triggers = [];
+
+    planet.roads.push({
         x1: startX1,
         x2: startX1 + Math.cos(angle) * startLength,
         y1: startY1,
@@ -20,7 +21,7 @@ function generateRoad() {
     });
 
     for (let i = 0; i < count; i++) {
-        const lastRoad = roads[i];
+        const lastRoad = planet.roads[i];
         const length = seed.unit() * 1000 + 400;
         const direction = seed.unit() > 0.5
             ? 1
@@ -29,7 +30,7 @@ function generateRoad() {
         const buildSize = seed.unit() * 200 + 100;
         const offset = 100;
 
-        buildings.push({
+        planet.buildings.push({
             id: seed.unit(),
             x: Math.cos(angle) - offset * Math.sin(angle) + lastRoad.x1,
             y: Math.sin(angle) + offset * Math.cos(angle) + lastRoad.y1,
@@ -39,7 +40,7 @@ function generateRoad() {
 
         angle += (Math.floor(seed.unit() * maxAngle / 2) * Math.PI / 180) * direction;
 
-        roads.push({
+        planet.roads.push({
             x1: lastRoad.x2,
             y1: lastRoad.y2,
             x2: lastRoad.x2 + Math.cos(angle) * length,
@@ -51,23 +52,27 @@ function generateRoad() {
 }
 
 function createTriggers() {
-    const id = Math.floor(buildings.length * seed.unit());
-    const shop = buildings[id];
+    if (!envData.current.roads.length) return;
+
+    const id = Math.floor((envData.current.roads.length - 1) * seed.unit());
+    const shop = envData.current.buildings[id];
 
     shop.text = 'shop';
 
-    triggers.push({
+    envData.current.triggers.push({
         x: shop.x,
         y: shop.y,
         id: shop.id,
         size: shop.size,
+        isOpen: false,
+        items: [],
         action() {
-            shopData.isOpen = !shopData.isOpen;
-            inventoryData.isOpen = shopData.isOpen;
-            inventoryData.inventoryOffsetY = shopData.height / 2
+            this.isOpen = !this.isOpen;
+            inventoryData.isOpen = this.isOpen;
+            inventoryData.inventoryOffsetY = inventoryData.height / 2
 
-            if (!shopData.cells.length) {
-                createShopStuff(this.id);
+            if (!this.items.length) {
+                createShopStuff(this);
             }
         }
     });
@@ -80,7 +85,7 @@ function drawBuildings() {
     ctx.fillStyle = lightStonePattern;
     ctx.lineWidth = 15;
 
-    buildings.forEach(build => {
+    envData.current.buildings.forEach(build => {
         setShadowsParam(0, 0, 50, '#000');
         ctx.save();
             ctx.translate(
@@ -131,11 +136,11 @@ function drawRoads() {
 
     ctx.beginPath();
     ctx.moveTo(
-        roads[0].x1 - camera.x + camera.width / 2,
-        roads[0].y1 - camera.y + camera.height / 2
+        envData.current.roads[0].x1 - camera.x + camera.width / 2,
+        envData.current.roads[0].y1 - camera.y + camera.height / 2
     );
 
-    roads.forEach(road => {
+    envData.current.roads.forEach(road => {
         ctx.save();
 
             ctx.translate(
@@ -151,10 +156,23 @@ function drawRoads() {
 }
 
 function checkTriggers() {
-    playerShip.currentTrigger = triggers.find(trigger =>
+    if (!envData.current.triggers) return;
+
+    playerShip.currentTrigger = envData.current.triggers.find(trigger =>
         playerShip.x > trigger.x &&
         playerShip.x < trigger.x + trigger.size &&
         playerShip.y > trigger.y &&
         playerShip.y < trigger.y + trigger.size
     );
+}
+
+function pushShips(planet) {
+    const seed = new RNG(planet.seed);
+    const shipsCount = Math.floor(seed.unit() * 10);
+
+    planet.ships = [];
+
+    for (let i = 0; i < shipsCount; i++) {
+        planet.ships.push(createShip(true));
+    }
 }
