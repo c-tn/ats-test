@@ -1,61 +1,85 @@
 function generateEnv(x, y) {
     const chunkSize = config.chunkSize;
 
-    for (let i = x - chunkSize * 4; i < x + chunkSize * 8; i += chunkSize) {
-        for (let j = y - chunkSize * 4; j < chunkSize * 8; j += chunkSize) {
-            let isExistChunk = envData.chunks.find(
-                chunk => chunk.x === i && chunk.y === j
-            );
-
-            if (isExistChunk) continue;
-
+    for (let i = x - chunkSize; i < x + chunkSize * 2; i += chunkSize) {
+        for (let j = y - chunkSize ; j < chunkSize * 2; j += chunkSize) {
             let newChunk = {
                 x: i,
                 y: j,
-                name: `C-${ seed.unit().toString(36).substr(2) }`,
-                seed: new RNG(`${ seed }${ x }${ y }`),
-                systems: []
+                name: `C-${ seed.unitString() }`,
+                seed: new RNG(`${ seed.unitString() }${ x }${ y }`),
+                systems: {}
             };
+
+            if (envData.chunks[newChunk.name]) continue;
 
             createChunkSystem(newChunk);
 
-            envData.chunks.push(newChunk);
+            envData.chunks[newChunk.name] = newChunk;
         }
     }
 }
 
 function createChunkSystem(chunk) {
-    const systemsCount = Math.floor(chunk.seed.unit() * config.maxSystemsInChunk);
+    const systemsCount = Math.floor(chunk.seed.unit() * config.maxSystemsInChunk) + 1;
 
     for (let i = 0; i < systemsCount; i++) {
-        const x = chunk.seed.unit() * config.chunkSize;
-        const y = chunk.seed.unit() * config.chunkSize;
-        const name = `S-${ chunk.seed.unit().toString(36).substr(2) }`;
-
         let newSystem = {
-            x, y, name,
+            x: chunk.seed.unit() * config.chunkSize,
+            y: chunk.seed.unit() * config.chunkSize,
+            name: `S-${ chunk.seed.unitString() }`,
             parent: chunk.name,
-            seed: new RNG(seed),
-            planets: []
+            seed: new RNG(chunk.seed.unitString()),
+            planets: {}
         };
 
         createSystemPlanets(newSystem);
 
-        chunk.systems.push(newSystem);
+        chunk.systems[newSystem.name] = newSystem;
     }
 }
 
 function createSystemPlanets(system) {
-    const planetsCount = config.maxPlanetsInSystem * system.seed.unit();
+    system.planets[`V-${ system.name.slice(2) }`] = {
+        x: 0,
+        y: 0,
+        r: 0,
+        size: config.minPlanetSize,
+        currentSpeed: 0,
+        currentAngle: 0,
 
-    for (let i = 0; i < planetsCount; i++) {
-        system.planets.push({
-            x: system.seed.unit() * 3000,
-            y: system.seed.unit() * 3000,
-            name: `P-${ system.seed.unit().toString(36).substr(2) }`,
-            sprite: null,
+        name: `V-${ system.name.slice(2) }`,
+        parent: system.name,
+        seed: system.seed.unitString(),
+        color: {
+            r: 0.9,
+            g: 0.9,
+            b: 0
+        },
+    }
+
+    for (let i = 1; i < config.maxPlanetsInSystem + 1; i++) {
+        if (system.seed.unit() > 0.5) continue;
+
+        const colorId = Math.floor(system.seed.unit() * textureColors.length);
+
+        const newPlanet = {
+            x: 0,
+            y: 0,
+            r: i * 3000,
+            size: config.minPlanetSize,
+            currentSpeed: system.seed.unit() * 0.0001,
+            currentAngle: system.seed.unit() * (360 * Math.PI / 180),
+
+            name: `P-${ system.seed.unitString() }`,
             parent: system.name,
-            seed: system.seed.unit().toString(36).substr(2),
-        });
+            seed: system.seed.unitString(),
+            color: textureColors[colorId],
+        };
+
+        newPlanet.x = Math.cos(newPlanet.currentAngle) * newPlanet.r;
+        newPlanet.y = Math.sin(newPlanet.currentAngle) * newPlanet.r;
+
+        system.planets[newPlanet.name] = newPlanet;
     }
 }

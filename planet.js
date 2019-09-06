@@ -1,42 +1,57 @@
-let currentPlanet = new Image();
-
-function createPlanet() {
+async function createPlanetSprite(planet) {
     let tempCanvas = document.createElement('canvas');
     let ctx = tempCanvas.getContext('2d');
 
-    tempCanvas.width = tempCanvas.height = 210;
+    tempCanvas.width = tempCanvas.height = planet.size * 2 + 5 * planet.size / 100;
 
-    const color = envData.currentColor;
-    const planetNoise = planetGenerator.generateNoise(seed.unit().toString(36).substr(2), seed.unit() * 3, 0.01, 520, 520, color.r, color.g, color.b);
+    const type = planet.name[0];
+    const amp = type === 'V' ? 3 : seed.unit() * 2 + 0.3;
+    const freq = type === 'V' ? 0.03 : 0.01;
+    const { color } = planet;
+
+    const planetNoise = planetGenerator.generateNoise(seed.unitString(), amp, freq, 1040, 1040, color.r, color.g, color.b, planet.size);
     const planetTexture = planetGenerator.generatePlanet(planetNoise.imageData);
 
-    fileLoader(resolve => {
-        ctx.putImageData(planetTexture.imageData, 0, 0);
+    ctx.putImageData(planetTexture.imageData, 0, 0);
 
-        let image = new Image();
-        image.src = tempCanvas.toDataURL();
+    let image = new Image();
+    image.src = tempCanvas.toDataURL();
 
-        image.onload = () => {
-            currentPlanet = image;
-            resolve();
-        };
+    return new Promise(res => {
+        image.onload = res(image);
     });
 }
 
 function drawPlanets() {
-    envData.a += 0.005;
-    envData.x += Math.cos(envData.a) * 5;
-    envData.y += Math.sin(envData.a) * 5;
+    if (envData.current.name[0] !== 'S') return;
 
-    ctx.save();
-        ctx.translate(
-            envData.x - camera.x + camera.width / 2,
-            envData.y - camera.y + camera.height / 2
-        );
-        
-        ctx.drawImage(
-            currentPlanet,
-            0, 0
-        );
-    ctx.restore();
+    Object.values(currentSystem.planets).forEach(async planet => {
+        if (!planet.sprite) {
+            planet.sprite = await createPlanetSprite(planet);
+        }
+        else {
+            if (planet.name[0] === 'V') {
+                setShadowsParam(0, 0, 100, '#aa0');
+            }
+            else {
+                setShadowsParam();
+            }
+
+            planet.x = Math.cos(planet.currentAngle) * planet.r;
+            planet.y = Math.sin(planet.currentAngle) * planet.r;
+            planet.currentAngle += planet.currentSpeed;
+
+            ctx.save();
+                ctx.translate(
+                    planet.x - camera.x + camera.width / 2,
+                    planet.y - camera.y + camera.height / 2
+                );
+
+                ctx.drawImage(
+                    planet.sprite,
+                    0, 0
+                );
+            ctx.restore();
+        }
+    });
 }

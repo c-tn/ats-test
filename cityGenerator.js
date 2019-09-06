@@ -74,6 +74,8 @@ function createTriggers() {
 }
 
 function drawBuildings() {
+    if (envData.current.name[0] !== 'P') return;
+
     ctx.strokeStyle = stonePattern;
     ctx.fillStyle = lightStonePattern;
     ctx.lineWidth = 15;
@@ -121,6 +123,8 @@ function drawBuildings() {
 }
 
 function drawRoads() {
+    if (envData.current.name[0] !== 'P') return;
+    
     ctx.lineJoin = 'round';
     ctx.strokeStyle = stonePattern;
     ctx.lineWidth = 150;

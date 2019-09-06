@@ -37,22 +37,45 @@ function drawMap() {
 
     ctx.fillStyle = '#555';
 
-    // Cities
-    mapData.citiesPoints.forEach(city => {
-        ctx.save();
-            ctx.translate(
-                canvas.width / 2 - mapData.width / 2,
-                canvas.height / 2 - mapData.height / 2
-            );
+    // Planets
+    if (envData.current.name[0] === 'S') {
+        Object.values(currentSystem.planets).forEach(planet => {
+            ctx.save();
+                ctx.fillStyle = '#fff';
+    
+                ctx.translate(
+                    canvas.width / 2 - mapData.width / 2,
+                    canvas.height / 2 - mapData.height / 2
+                );
+    
+                ctx.fillRect(
+                    planet.x / 80000 * mapData.width + mapData.width / 2,
+                    planet.y / 40000 * mapData.height + mapData.height / 2,
+                    4,
+                    4
+                );
+            ctx.restore();
+        });
+    }
 
-            ctx.fillRect(
-                city.x / 80000 * mapData.width,
-                city.y / 40000 * mapData.height,
-                10,
-                10
-            );
-        ctx.restore();
-    });
+    // Cities
+    if (envData.current.name[0] === 'P') {
+        mapData.citiesPoints.forEach(city => {
+            ctx.save();
+                ctx.translate(
+                    canvas.width / 2 - mapData.width / 2,
+                    canvas.height / 2 - mapData.height / 2
+                );
+
+                ctx.fillRect(
+                    city.x / 80000 * mapData.width + mapData.width / 2,
+                    city.y / 40000 * mapData.height + mapData.height / 2,
+                    10,
+                    10
+                );
+            ctx.restore();
+        });
+    }
 
     // Ships
     ships.forEach(ship => {
@@ -70,29 +93,11 @@ function drawMap() {
             );
 
             ctx.fillRect(
-                ship.x / 80000 * mapData.width,
-                ship.y / 40000 * mapData.height,
+                ship.x / 80000 * mapData.width + mapData.width / 2,
+                ship.y / 40000 * mapData.height + mapData.height / 2,
                 2,
                 2
             );
         ctx.restore();
     });
-
-    
-
-    ctx.save();
-        ctx.fillStyle = '#fff';
-
-        ctx.translate(
-            canvas.width / 2 - mapData.width / 2,
-            canvas.height / 2 - mapData.height / 2
-        );
-
-        ctx.fillRect(
-            envData.x / 80000 * mapData.width,
-            envData.y / 40000 * mapData.height,
-            4,
-            4
-        );
-    ctx.restore();
 }

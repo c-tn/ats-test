@@ -60,7 +60,8 @@ function fpsCtrl(fps, callback) {
 }
 
 let envData = {
-    chunks: [],
+    chunks: {},
+    current: {},
     x:500, y:500, a:0
 };
 let ships = [];
@@ -141,7 +142,7 @@ function init() {
     renderCitiesPoints();
 }
 
-const seedValue = 'q' || Math.random().toString(36).substr(2);
+const seedValue = Math.random().toString(36).substr(2);
 const seed = new RNG(seedValue);
 
 // FPS
@@ -196,7 +197,9 @@ function setShadowsParam(offsetX, offsetY, blur, color) {
 const imageAngle = 90 * Math.PI / 180;
 
 function drawShips() {
-    setShadowsParam(40, 20, 3, 'rgba(0, 0, 0, .3)');
+    if (envData.current.name[0] === 'P') {
+        setShadowsParam(40, 20, 3, 'rgba(0, 0, 0, .3)');
+    }
     
     ships = ships.filter(ship => {
         ctx.save();
@@ -436,7 +439,7 @@ function gameLoop() {
     updateShip();
     updateCameraData();
     checkTriggers();
-    
+
     drawLandscape();
     drawRoads();
     drawBuildings();
@@ -450,6 +453,33 @@ function gameLoop() {
     drawInventory();
 
     showFPS();
+}
+
+function wheelActions(wheelDelta) {
+    if (currentPlanet && wheelDelta < -5) {
+        envData.current = currentSystem;
+
+        playerShip.x = currentPlanet.x + currentPlanet.size;
+        playerShip.y = currentPlanet.y + currentPlanet.size;
+
+        currentPlanet = null;
+    }
+    else if (!currentPlanet && wheelDelta > 5) {
+        currentPlanet = Object.values(currentSystem.planets).find(planet => {
+            const centerX = planet.x + planet.size;
+            const centerY = planet.y + planet.size;
+
+            const dx = (playerShip.x - centerX) ** 2;
+            const dy = (playerShip.y - centerY) ** 2;
+
+            return Math.sqrt(dx + dy) < planet.size;
+        });
+
+        playerShip.x = 0;
+        playerShip.y = 0;
+
+        envData.current = currentPlanet;
+    }
 }
 
 // CTRL
@@ -549,8 +579,29 @@ function handleKey(e) {
     }
 }
 
+let timer = null;
+let wheelDelta = 0;
+
+function handleWheel({ wheelDeltaY }) {
+    if (wheelDeltaY > 0) {
+        wheelDelta++;
+    }
+    else {
+        wheelDelta--;
+    }
+
+    timer = setTimeout(() => {
+        wheelActions(wheelDelta);
+
+        wheelDelta = 0;
+
+        clearTimeout(timer);
+    }, 300);
+}
+
 document.addEventListener('keydown', handleKey);
 document.addEventListener('keyup', handleKey);
+document.addEventListener('wheel', handleWheel);
 
 function handleTargetButton(e) {
     const value = e.type === 'touchstart'

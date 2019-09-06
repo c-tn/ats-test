@@ -85,6 +85,7 @@ function RNG(seed){
 	this.c = 0;
 	this.m = Math.pow(2, 31) - 1;
 }
+
 RNG.prototype.getSeed = function(seed){
 	let s = 34737;
 
@@ -94,8 +95,15 @@ RNG.prototype.getSeed = function(seed){
 	
 	return s;
 }
+
 RNG.prototype.unit = function(){
 	this.seed = (this.a * this.seed + this.c) % this.m;
 
 	return this.seed / (this.m - 1);
+}
+
+RNG.prototype.unitString = function(){
+	this.seed = (this.a * this.seed + this.c) % this.m;
+
+	return (this.seed / (this.m - 1)).toString(36).substr(2);
 }

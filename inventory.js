@@ -248,7 +248,7 @@ function createInventory(ship) {
 
         if (seed.unit() > 0.4) {
             item = {
-                name: seed.unit().toString(36).substr(2),
+                name: seed.unitString(),
                 description: `weapon ${ i }`,
                 type: itemTypes.weapon,
                 lastShot: performance.now(),
@@ -283,7 +283,7 @@ function createInventory(ship) {
 
         if (i && i % 5 === 0) {
             item = {
-                name: seed.unit().toString(36).substr(2),
+                name: seed.unitString(),
                 description: `item ${ i }`,
                 price: Math.floor(seed.unit() * 100) + 10,
                 type: itemTypes.another
@@ -357,7 +357,7 @@ function createShopStuff(id) {
         if (itemCounter < stuffCount) {
             if (seed.unit() > 0.8) {
                 item = {
-                    name: seed.unit().toString(36).substr(2),
+                    name: seed.unitString(),
                     description: `weapon ${ i }`,
                     type: itemTypes.weapon,
                     lastShot: performance.now(),
@@ -370,7 +370,7 @@ function createShopStuff(id) {
             }
             else {
                 item = {
-                    name: seed.unit().toString(36).substr(2),
+                    name: seed.unitString(),
                     description: `item ${ i }`,
                     type: itemTypes.another,
                     price: Math.floor(seed.unit() * 100) + 10

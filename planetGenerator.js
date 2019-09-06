@@ -1,9 +1,9 @@
 let planetGenerator = (function() {
-    let radius      = 100;
+    let radius      = 500;
     let pixelSize   = 5;
     let rotate      = 0.0;
     let rotateSpeed = 0.0;
-    let planetSize  = radius * 2 + 5 * radius / 100;
+    let planetSize  = radius * 2;
 
     // MAP
     function map(c, a1, a2, b1, b2) {
@@ -23,7 +23,10 @@ let planetGenerator = (function() {
     }
 
     // GENERATE NOISE
-    function generateNoise(seed, initAmp = 1, initFreq = 0.01, width = 700, height = 400, r, g, b) {
+    function generateNoise(seed, initAmp = 1, initFreq = 0.01, width = 700, height = 400, r, g, b, size = 500) {
+        radius = size;
+        planetSize = radius * 2 + 5 * radius / 100;
+
         let canvas = document.createElement('canvas');
         let ctx    = canvas.getContext('2d');
 
