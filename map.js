@@ -6,6 +6,8 @@ let mapData = {
 }
 
 function renderCitiesPoints() {
+    mapData.citiesPoints = [];
+    
     let [ minX, minY ] = [ Infinity, Infinity ];
     let [ maxX, maxY ] = [ -Infinity, -Infinity ];
 

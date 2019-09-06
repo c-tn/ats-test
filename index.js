@@ -62,7 +62,6 @@ function fpsCtrl(fps, callback) {
 let envData = {
     chunks: {},
     current: {},
-    x:500, y:500, a:0
 };
 let bullets = [];
 
@@ -504,6 +503,8 @@ async function wheelActions(wheelDelta) {
             pushShips(currentPlanet);
             generateRoad(currentPlanet);
         }
+
+        renderCitiesPoints();
 
         currentPlanet.ships.push(playerShip);
     }
