@@ -24,34 +24,12 @@ function drawLines() {
     ctx.strokeStyle = '#fff';
 
     lines.forEach(line => {
-        // if (line.inter) {
-        //     ctx.fillRect(
-        //         line.inter.x - offset.x - 5,
-        //         line.inter.y - offset.y - 5,
-        //         10,
-        //         10
-        //     );
-        // }
-
         ctx.beginPath();
 
         ctx.moveTo(line.x1 - offset.x, line.y1 - offset.y);
         ctx.lineTo(line.x2 - offset.x, line.y2 - offset.y);
 
         ctx.stroke();
-
-        if (line.build) {
-            ctx.save();
-                ctx.translate(
-                    line.x1 - offset.x,
-                    line.y1 - offset.y,
-                );
-    
-                ctx.rotate(line.angle);
-    
-                ctx.fillRect(0, 0, 10, 10);
-            ctx.restore();
-        }
     });
 }
 
@@ -101,8 +79,7 @@ function generateRoads(lvl = 0, angle, lastLine, count = 20, currentCount = 0, i
         x1: lastLine.x2,
         y1: lastLine.y2,
         x2: lastLine.x2 + Math.cos(angle) * length,
-        y2: lastLine.y2 + Math.sin(angle) * length,
-        angle
+        y2: lastLine.y2 + Math.sin(angle) * length
     };
 
     check(newLine);

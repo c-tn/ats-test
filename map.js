@@ -1,28 +1,7 @@
 let mapData = {
     isOpen: false,
     width: 800,
-    height: 400,
-    citiesPoints: []
-}
-
-function renderCitiesPoints() {
-    mapData.citiesPoints = [];
-    
-    let [ minX, minY ] = [ Infinity, Infinity ];
-    let [ maxX, maxY ] = [ -Infinity, -Infinity ];
-
-    envData.current.roads.forEach(road => {
-        if (road.x1 < minX) minX = road.x1;
-        if (road.x2 > maxX) maxX = road.x2;
-
-        if (road.y1 < minY) minY = road.y1;
-        if (road.y2 > maxY) maxY = road.y2;
-    });
-
-    mapData.citiesPoints.push({
-        x: (minX + maxX) / 2,
-        y: (minY + maxY) / 2
-    });
+    height: 400
 }
 
 function drawMap() {
@@ -37,14 +16,12 @@ function drawMap() {
         mapData.height
     );
 
-    ctx.fillStyle = '#555';
-
     // Planets
+    ctx.fillStyle = '#fff';
+
     if (envData.current.name[0] === 'S') {
         Object.values(currentSystem.planets).forEach(planet => {
             ctx.save();
-                ctx.fillStyle = '#fff';
-    
                 ctx.translate(
                     canvas.width / 2 - mapData.width / 2,
                     canvas.height / 2 - mapData.height / 2
@@ -61,21 +38,33 @@ function drawMap() {
     }
 
     // Cities
-    if (envData.current.name[0] === 'P') {
-        mapData.citiesPoints.forEach(city => {
-            ctx.save();
-                ctx.translate(
-                    canvas.width / 2 - mapData.width / 2,
-                    canvas.height / 2 - mapData.height / 2
-                );
+    ctx.strokeStyle = '#555';
+    ctx.lineWidth = 1;
 
-                ctx.fillRect(
-                    city.x / 80000 * mapData.width + mapData.width / 2,
-                    city.y / 40000 * mapData.height + mapData.height / 2,
-                    10,
-                    10
-                );
-            ctx.restore();
+    if (envData.current.name[0] === 'P') {
+        envData.current.cities.forEach(city => {
+            city.roads.forEach(road => {
+                ctx.save();
+                    ctx.translate(
+                        canvas.width / 2 - mapData.width / 2,
+                        canvas.height / 2 - mapData.height / 2
+                    );
+                    
+                    ctx.beginPath();
+            
+                    ctx.moveTo(
+                        road.x1 / 80000 * mapData.width + mapData.width / 2,
+                        road.y1 / 40000 * mapData.height + mapData.height / 2
+                    );
+
+                    ctx.lineTo(
+                        road.x2 / 80000 * mapData.width + mapData.width / 2,
+                        road.y2 / 40000 * mapData.height + mapData.height / 2
+                    );
+            
+                    ctx.stroke();
+                ctx.restore();
+            });
         });
     }
 

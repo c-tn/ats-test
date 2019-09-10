@@ -132,8 +132,7 @@ async function init() {
     envData.currentTexture = await createPlanetTexture(currentPlanet);
 
     pushShips(currentPlanet);
-    generateRoad(currentPlanet);
-    renderCitiesPoints();
+    createCities(currentPlanet);
 
     currentPlanet.ships.push(playerShip);
 }
@@ -438,7 +437,7 @@ function gameLoop() {
 
     drawLandscape();
     drawRoads();
-    drawBuildings();
+    // drawBuildings();
     drawPlanets();
     drawBullets();
     drawShips();
@@ -501,10 +500,8 @@ async function wheelActions(wheelDelta) {
 
         if (!currentPlanet.ships) {
             pushShips(currentPlanet);
-            generateRoad(currentPlanet);
+            createCities(currentPlanet);
         }
-
-        renderCitiesPoints();
 
         currentPlanet.ships.push(playerShip);
     }
