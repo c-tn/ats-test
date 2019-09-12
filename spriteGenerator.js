@@ -10,7 +10,7 @@ class Mask {
             0, 0, 0, 0, 0, 0, 0, 0, 1,
             0, 0, 0, 0, 0, 0, 0, 1, 1,
             0, 0, 0, 0, 0, 0, 0, 1, 1,
-            0, 2, 2, 0, 0, 0, 1, 1, 1,
+            0, 1, 1, 0, 0, 0, 1, 1, 1,
             0, 0, 1, 0, 0, 0, 1, 1, 1,
             0, 0, 1, 0, 0, 1, 1, 1, 1,
             0, 0, 1, 0, 1, 1, 1, 1, 1,
@@ -99,7 +99,7 @@ class Sprite {
     applyMask() {
         for (let y = 0; y < this.mask.height; y++) {
             for (let x = 0; x < this.mask.width; x++) {
-                let data =  this.mask.data[y * this.mask.width + x];
+                let data = this.mask.data[y * this.mask.width + x];
 
                 this.setData(x, y, data);
             }
@@ -113,14 +113,6 @@ class Sprite {
 
                 if (val === 1) {
                     val = val * Math.round(this.rng.unit());
-                }
-                else if (val === 2) {
-                    if (this.rng.unit() > 0.5) {
-                        val = 1;
-                    }
-                    else {
-                        val = -1;
-                    }
                 }
 
                 this.setData(x, y, val);
@@ -155,7 +147,8 @@ class Sprite {
     renderPixelData() {
         let isVertical = this.rng.unit() > 0.5;
 
-        let ilen, jlen;
+        let ilen;
+        let jlen;
 
         if (isVertical) {
             ilen = this.height;
@@ -197,24 +190,13 @@ class Sprite {
                             rgb.b *= 0.3;
                         }
                     }
-                    else {
-                        if (val === -1) {
-                            rgb.r *= 0;
-                            rgb.g *= 0;
-                            rgb.b *= 0;                            
-                        }
-                    }
                 }
 
                 this.pixels.data[index + 0] = rgb.r * 255;
                 this.pixels.data[index + 1] = rgb.g * 255;
                 this.pixels.data[index + 2] = rgb.b * 255;
 
-                let isWhite = this.pixels.data[index + 0] === 255 ||
-                    this.pixels.data[index + 1] === 255 ||
-                    this.pixels.data[index + 2] === 255;
-
-                if (isWhite) {
+                if (val === 0) {
                     this.pixels.data[index + 3] = 0;
                 }
                 else {

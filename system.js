@@ -59,7 +59,7 @@ function createSystemPlanets(system) {
     }
 
     for (let i = 1; i < config.maxPlanetsInSystem + 1; i++) {
-        if (system.seed.unit() > 0.5) continue;
+        if (system.seed.unit() > 0.1 && Object.keys(system.planets).length > 1) continue;
 
         const colorId = Math.floor(system.seed.unit() * textureColors.length);
 

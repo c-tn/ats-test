@@ -43,8 +43,8 @@ function drawPlanets() {
 
             ctx.save();
                 ctx.translate(
-                    planet.x - camera.x + camera.width / 2,
-                    planet.y - camera.y + camera.height / 2
+                    planet.x - camera.x + camera.width / 2 - planet.sprite.width / 2,
+                    planet.y - camera.y + camera.height / 2 - planet.sprite.height / 2
                 );
 
                 ctx.drawImage(

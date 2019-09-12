@@ -1,15 +1,23 @@
+const isDebug = false;
+
+/**
+ * Create cities for planet
+ * @param {object} planet 
+ */
 function createCities(planet) {
-    const seed = new RNG(planet.seed);
+    const seed = new RNG('' || planet.seed);
     const citiesCount = 1 || Math.floor(seed.unit() * 2);
 
     for (let i = 0; i < citiesCount; i++) {
         const city = {
+            seed,
             id: seed.unitString(),
             name: `C-${ seed.unitString() }`,
-            angleOffset: 25,
-            angle: (25 * Math.random() * Math.PI / 180) - (25 * 2 * Math.random() * Math.PI / 180),
+            angleOffset: 35,
+            angle: (35 * seed.unit() * Math.PI / 180) - (35 * 2 * seed.unit() * Math.PI / 180),
             segmentLength: 500,
-            roads: []
+            roads: [],
+            builds: []
         }
 
         generateRoads(city, 0, city.angle);
@@ -19,62 +27,81 @@ function createCities(planet) {
 }
 
 /**
- * 
+ * Generate roads for city
  * @param {object} planet 
  * @param {number} lvl 
  * @param {float} angle 
  * @param {object} lastSegment 
  * @param {number} maxSegments 
  * @param {number} currentSegmentsCount 
- * @param {boolean} isNew 
  */
-function generateRoads(city, lvl = 0, angle, lastSegment, maxSegments = 20, currentSegmentsCount = 0, isNew) {
+function generateRoads(city, lvl = 0, angle, lastSegment, maxSegments = 20, currentSegmentsCount = 0) {
     if (!lastSegment) {
         lastSegment = {
-            x1: 100,
-            y1: canvas.height / 2,
-            x2: 100 + Math.cos(angle) * city.segmentLength,
-            y2: canvas.height / 2 + Math.sin(angle) * city.segmentLength
+            x1: 0,
+            y1: 0,
+            x2: 0 + Math.cos(angle) * city.segmentLength,
+            y2: 0 + Math.sin(angle) * city.segmentLength
         }
 
         city.roads.push(lastSegment);
     }
 
-    angle += (city.angleOffset * Math.random() * Math.PI / 180) - (city.angleOffset * Math.random() * Math.PI / 180);
+    angle += (city.angleOffset * city.seed.unit() * Math.PI / 180) - (city.angleOffset * city.seed.unit() * Math.PI / 180);
 
     let newSegment = {
         x1: lastSegment.x2,
         y1: lastSegment.y2,
         x2: lastSegment.x2 + Math.cos(angle) * city.segmentLength,
-        y2: lastSegment.y2 + Math.sin(angle) * city.segmentLength
+        y2: lastSegment.y2 + Math.sin(angle) * city.segmentLength,
+        angle
     };
 
     checkIntersects(newSegment, city);
+    checkTails(newSegment, city);
 
-    if (!isNew && !newSegment.inter && Math.random() > 0.8 && lvl < 2) {
-        let direction = Math.random() > 0.5
+    generateBuild(newSegment, city, angle);
+
+    if (currentSegmentsCount > 10 && !newSegment.isInter && city.seed.unit() > 0.7 && lvl < 2) {
+        let direction = city.seed.unit() > 0.5
             ? 1
             : -1;
 
-        generateRoads(city, lvl + 1, angle + 90 * Math.PI / 180 * direction, lastSegment, maxSegments, 5, true);
+        generateRoads(city, lvl + 1, angle + 90 * Math.PI / 180 * direction, lastSegment, maxSegments, 0);
     }
 
     city.roads.push(newSegment);
 
-    if (lvl <= 3 && currentSegmentsCount < maxSegments && !newSegment.inter) {
+    if (lvl <= 2 && currentSegmentsCount < maxSegments && !newSegment.isInter) {
         generateRoads(city, lvl, angle, newSegment, maxSegments, currentSegmentsCount + 1);
     }
 }
 
+/**
+ * Generate build for segment
+ * @param {object} segment 
+ * @param {object} city 
+ * @param {float} angle 
+ */
+function generateBuild(segment, city, angle) {
+}
+
+/**
+ * check the segment for intersection 
+ * @param {object} newSegment 
+ * @param {object} city 
+ */
 function checkIntersects(newSegment, city) {
-    city.roads.forEach(segment => {
+    for (let i = 0; i < city.roads.length; i++) {
+        let segment = city.roads[i];
+
         if (
             newSegment === segment ||
             newSegment.x2 === segment.x1 ||
             newSegment.y2 === segment.y1 ||
             newSegment.x1 === segment.x2 ||
             newSegment.y1 === segment.y2
-        ) return;
+        ) continue;
 
         const x1 = newSegment.x1;
         const x2 = newSegment.x2;
@@ -85,7 +112,7 @@ function checkIntersects(newSegment, city) {
         const y2 = newSegment.y2;
         const y3 = segment.y1;
         const y4 = segment.y2;
-    
+
         let m12 = (y2 - y1) / (x2 - x1);
         let m34 = (y4 - y3) / (x4 - x3);
         let m = m34 / m12;
@@ -104,19 +131,71 @@ function checkIntersects(newSegment, city) {
             point.y >= Math.min(segment.y1, segment.y2) &&
             point.y <= Math.max(segment.y1, segment.y2)                    
         ) {
-            newSegment.x2 = point.x;
-            newSegment.y2 = point.y;
-            newSegment.inter = point;
+            let d1 = Math.sqrt(Math.pow(newSegment.x2 - segment.x1, 2) + Math.pow(newSegment.y2 - segment.y1, 2));
+            let d2 = Math.sqrt(Math.pow(newSegment.x2 - segment.x2, 2) + Math.pow(newSegment.y2 - segment.y2, 2));
+
+            if (d1 > d2) {
+                newSegment.x2 = segment.x2;
+                newSegment.y2 = segment.y2;
+            }
+            else {
+                newSegment.x2 = segment.x1;
+                newSegment.y2 = segment.y1;
+            }
+
+            newSegment.isInter = true;
+
+            return point;
         }
-    });
+    }
 }
 
+function checkTails(newSegment, city) {
+    for (let i = 0; i < city.roads.length; i++) {
+        let segment = city.roads[i];
+
+        if (
+            newSegment === segment ||
+            newSegment.x2 === segment.x1 ||
+            newSegment.y2 === segment.y1 ||
+            newSegment.x1 === segment.x2 ||
+            newSegment.y1 === segment.y2
+        ) continue;
+
+        const segmentLength = Math.sqrt((segment.x2 - segment.x1)**2 + (segment.y2 - segment.y1)**2);
+        const d1 = Math.sqrt((newSegment.x2 - segment.x1)**2 + (newSegment.y2 - segment.y1)**2);
+        const d2 = Math.sqrt((newSegment.x2 - segment.x2)**2 + (newSegment.y2 - segment.y2)**2);
+
+        if (d1 < segmentLength * 0.7) {
+            newSegment.x2 = segment.x1;
+            newSegment.y2 = segment.y1;
+
+            return;
+        }
+        else if (d2 < segmentLength * 0.7) {
+            newSegment.x2 = segment.x2;
+            newSegment.y2 = segment.y2;
+
+            return;
+        }
+    }
+}
+
+/**
+ * Draw city roads
+ */
 function drawRoads() {
     if (envData.current.name[0] !== 'P') return;
-    
+
+    ctx.lineWidth = config.roadWidth;
     ctx.strokeStyle = stonePattern;
     ctx.fillStyle = stonePattern;
-    ctx.lineWidth = config.roadWidth;
+    ctx.lineCap = 'round';
+
+    if (isDebug) {
+        ctx.strokeStyle = 'rgba(255, 255, 255, .2)';
+        ctx.fillStyle = 'rgba(255, 255, 255, .2)';
+    }
 
     envData.current.cities.forEach(city => {
         city.roads.forEach(road => {
@@ -127,27 +206,46 @@ function drawRoads() {
                 );
 
                 ctx.beginPath();
-                ctx.moveTo(0, 0);
 
+                ctx.moveTo(0, 0);
                 ctx.lineTo(
                     road.x2 - road.x1,
                     road.y2 - road.y1
                 );
 
                 ctx.stroke();
-                
-
-                ctx.save();
-                    ctx.beginPath();
-                    ctx.arc(road.x2 - road.x1, road.y2 - road.y1, config.roadWidth / 2, 0, 2 * Math.PI);
-
-                    ctx.fill();
-                ctx.restore();
             ctx.restore();
         });
     });
 }
 
+function drawBuildings() {
+    if (envData.current.name[0] !== 'P') return;
+
+    ctx.lineWidth = 15;
+    ctx.strokeStyle = lightStonePattern;
+    ctx.fillStyle = stonePattern;
+    setShadowsParam(0, 0, 3, '#000');
+
+    envData.current.cities.forEach(city => {
+        city.builds.forEach(build => {
+            ctx.save();
+                ctx.translate(
+                    build.x1 - camera.x + camera.width / 2,
+                    build.y1 - camera.y + camera.height / 2
+                );
+
+                ctx.beginPath();
+
+                ctx.moveTo(0, 0);
+
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+            ctx.restore();
+        });
+    });
+}
 
 
 
@@ -191,55 +289,6 @@ function createTriggers() {
             }
         }
     });
-}
-
-function drawBuildings() {
-    if (envData.current.name[0] !== 'P') return;
-
-    ctx.strokeStyle = stonePattern;
-    ctx.fillStyle = lightStonePattern;
-    ctx.lineWidth = 15;
-
-    envData.current.buildings.forEach(build => {
-        setShadowsParam(0, 0, 50, '#000');
-        ctx.save();
-            ctx.translate(
-                build.x - camera.x + camera.width / 2,
-                build.y - camera.y + camera.height / 2
-            );
-
-            ctx.rotate(build.angle);
-
-            ctx.beginPath();
-
-            ctx.rect(
-                0,
-                0,
-                build.size,
-                build.size
-            );
-
-            ctx.fill();
-
-            if (build.text) {
-                ctx.font = "30px sans-serif";
-                ctx.fillStyle = '#500';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'top';
-
-                ctx.fillText(build.text, build.size / 2, 15);
-            }
-
-            setShadowsParam(3, 3, 2, 'rgba(0, 0, 0, .7)');
-            ctx.stroke();
-
-        ctx.restore();
-        setShadowsParam();
-    });
-    
-    ctx.strokeStyle = '#000';
-    ctx.fillStyle = 'rgba(100, 0, 0, .5)';
-    ctx.lineWidth = 1;
 }
 
 function checkTriggers() {

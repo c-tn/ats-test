@@ -4,7 +4,6 @@ let ctx = canvas.getContext('2d');
 canvas.width = 2048;
 canvas.height = 1080;
 
-ctx.fillStyle = '#000';
 ctx.fillStyle = '#fff';
 ctx.strokeStyle = '#fff';
 
@@ -20,7 +19,7 @@ let lines = [];
 ctx.font = "25px sans-serif";
 
 function drawLines() {
-    ctx.fillStyle = 'rgba(255, 255, 255, .3)';
+    ctx.fillStyle = '#f00';
     ctx.strokeStyle = '#fff';
 
     lines.forEach(line => {
@@ -52,7 +51,7 @@ const angleOffset = 25;
 let angle = (angleOffset * Math.random() * Math.PI / 180) - (angleOffset * 2 * Math.random() * Math.PI / 180);
 
 const maxAngle = 360 * Math.PI / 180;
-let length = 25;
+let length = 50;
 
 function generateRoads(lvl = 0, angle, lastLine, count = 20, currentCount = 0, isNew) {
     if (!lastLine) {

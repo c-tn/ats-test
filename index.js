@@ -59,6 +59,12 @@ function fpsCtrl(fps, callback) {
     }
 }
 
+const canvas = document.getElementById('canvas');
+canvas.width = 1280;
+canvas.height = 720;
+
+const ctx = canvas.getContext('2d');
+
 let envData = {
     chunks: {},
     current: {},
@@ -83,8 +89,8 @@ function createShip(isRandom) {
     let ship = {
         id: seedNum,
         sprite: null,
-        x: isRandom ? 80000 * seed.unit() - 40000 : 0,
-        y: isRandom ? 40000 * seed.unit() - 20000 : 0,
+        x: isRandom ? config.planetWidth * seed.unit() - config.planetWidth / 2 : 0,
+        y: isRandom ? config.planetHeight * seed.unit() - config.planetHeight / 2 : 0,
         currentAngle: 0,
         rotateSpeed: 0.05,
         currentSpeed: 0,
@@ -360,6 +366,8 @@ function createBullet({ x, y, currentAngle, ownerId, damage }) {
 }
                
 function drawBullets() {
+    setShadowsParam();
+    
     bullets = bullets.filter(bullet => {
         ctx.fillStyle = '#900';
 
@@ -437,7 +445,7 @@ function gameLoop() {
 
     drawLandscape();
     drawRoads();
-    // drawBuildings();
+    drawBuildings();
     drawPlanets();
     drawBullets();
     drawShips();
@@ -462,8 +470,8 @@ async function wheelActions(wheelDelta) {
 
         envData.current = currentSystem;
 
-        playerShip.x = currentPlanet.x + currentPlanet.size;
-        playerShip.y = currentPlanet.y + currentPlanet.size;
+        playerShip.x = currentPlanet.x;
+        playerShip.y = currentPlanet.y;
 
         if (!currentSystem.ships) {
             currentSystem.ships = [];
@@ -477,8 +485,8 @@ async function wheelActions(wheelDelta) {
         const findedPlanet = Object.values(currentSystem.planets).find(planet => {
             if (planet.name[0] === 'V') return;
 
-            const centerX = planet.x + planet.size;
-            const centerY = planet.y + planet.size;
+            const centerX = planet.x;
+            const centerY = planet.y;
 
             const dx = (playerShip.x - centerX) ** 2;
             const dy = (playerShip.y - centerY) ** 2;
