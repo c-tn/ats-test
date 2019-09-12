@@ -464,55 +464,79 @@ function popPlayerShip() {
     );
 }
 
-async function wheelActions(wheelDelta) {
-    if (currentPlanet && wheelDelta < -5) {
-        popPlayerShip();
-
-        envData.current = currentSystem;
-
-        playerShip.x = currentPlanet.x;
-        playerShip.y = currentPlanet.y;
-
-        if (!currentSystem.ships) {
-            currentSystem.ships = [];
-        }
-
-        currentSystem.ships.push(playerShip);
-
-        currentPlanet = null;
+function wheelActions(wheelDelta) {
+    if (mapData.isOpen && wheelDelta < -5) {
+        zoomOutMap();
+    }
+    else if (mapData.isOpen && wheelDelta > 5) {
+        zoomInMap();
+    }
+    else if (currentPlanet && wheelDelta < -5) {
+        leavePlanet();
     }
     else if (!currentPlanet && wheelDelta > 5) {
-        const findedPlanet = Object.values(currentSystem.planets).find(planet => {
-            if (planet.name[0] === 'V') return;
-
-            const centerX = planet.x;
-            const centerY = planet.y;
-
-            const dx = (playerShip.x - centerX) ** 2;
-            const dy = (playerShip.y - centerY) ** 2;
-
-            return Math.sqrt(dx + dy) < planet.size;
-        });
-
-        if (!findedPlanet) return;
-
-        popPlayerShip();
-
-        envData.currentTexture = await createPlanetTexture(findedPlanet);
-
-        currentPlanet = findedPlanet;
-        envData.current = currentPlanet;
-
-        playerShip.x = 0;
-        playerShip.y = 0;
-
-        if (!currentPlanet.ships) {
-            pushShips(currentPlanet);
-            createCities(currentPlanet);
-        }
-
-        currentPlanet.ships.push(playerShip);
+        enterPlanet();
     }
+}
+
+/**
+ * Get to the planet
+ */
+async function enterPlanet() {
+    const findedPlanet = Object.values(currentSystem.planets).find(planet => {
+        if (planet.name[0] === 'V') return;
+
+        const centerX = planet.x;
+        const centerY = planet.y;
+
+        const dx = (playerShip.x - centerX) ** 2;
+        const dy = (playerShip.y - centerY) ** 2;
+
+        return Math.sqrt(dx + dy) < planet.size;
+    });
+
+    if (!findedPlanet) return;
+
+    popPlayerShip();
+
+    envData.currentTexture = await createPlanetTexture(findedPlanet);
+
+    currentPlanet = findedPlanet;
+    envData.current = currentPlanet;
+
+    playerShip.x = 0;
+    playerShip.y = 0;
+
+    if (!currentPlanet.ships) {
+        pushShips(currentPlanet);
+        createCities(currentPlanet);
+    }
+
+    currentPlanet.ships.push(playerShip);
+
+    mapData.mapType = mapTypes.planet;
+}
+
+/**
+ * Leave the planet
+ */
+function leavePlanet() {
+    popPlayerShip();
+
+    envData.current = currentSystem;
+
+    playerShip.x = currentPlanet.x;
+    playerShip.y = currentPlanet.y;
+
+    if (!currentSystem.ships) {
+        currentSystem.ships = [];
+    }
+
+    currentSystem.ships.push(playerShip);
+
+    currentPlanet = null;
+
+    mapData.mapType = mapTypes.system;
 }
 
 // CTRL

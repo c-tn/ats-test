@@ -1,7 +1,34 @@
+const mapTypes = {
+    planet: 0,
+    system: 1,
+    chunks: 2
+}
+
 let mapData = {
     isOpen: false,
+    mapType: mapTypes.planet,
     width: 800,
-    height: 400
+    height: 400,
+    isDragged: false,
+    startX: 0,
+    startY: 0,
+    offsetX: 0,
+    offsetY: 0
+}
+
+function zoomOutMap() {
+    if (mapData.mapType < mapTypes.chunks) {
+        mapData.mapType++;
+    }
+}
+
+function zoomInMap() {
+    if (envData.current.name[0] === 'P' && mapData.mapType > mapTypes.planet) {
+        mapData.mapType--;
+    }
+    else if (mapData.mapType > mapTypes.system) {
+        mapData.mapType--;
+    }
 }
 
 function drawMap() {
@@ -16,8 +43,46 @@ function drawMap() {
         mapData.height
     );
 
-    // Planets
-    if (envData.current.name[0] === 'S') {
+    // Chunks
+    if (mapData.mapType === mapTypes.chunks) {
+        Object.values(envData.chunks).forEach(chunk => {
+            ctx.save();
+                ctx.translate(
+                    canvas.width / 2,
+                    canvas.height / 2
+                );
+
+                Object.values(chunk.systems).forEach(system => {
+                    if (
+                        mapData.offsetX + system.x + chunk.x > mapData.width / 2 ||
+                        mapData.offsetX + system.x + chunk.x < -mapData.width / 2 ||
+                        mapData.offsetY + system.y + chunk.y > mapData.height / 2 ||
+                        mapData.offsetY + system.y + chunk.y < -mapData.height / 2
+                    ) return;
+
+                    ctx.fillStyle = '#fff';
+
+                    if (currentSystem === system) {
+                        ctx.fillStyle = '#0f0';
+                    }
+
+                    ctx.beginPath();
+                    ctx.arc(
+                        mapData.offsetX + system.x + chunk.x,
+                        mapData.offsetY + system.y + chunk.y,
+                        2, 0, Math.PI * 2
+                    );
+
+                    ctx.fill();
+                });
+            ctx.restore();
+        });
+    }
+
+    // System
+    if (mapData.mapType === mapTypes.system) {
+        ctx.lineWidth = 1;
+
         Object.values(currentSystem.planets).forEach(planet => {
             ctx.save();
                 ctx.translate(
@@ -27,7 +92,7 @@ function drawMap() {
 
                 const radius = planet.r / config.planetWidth * mapData.width;
 
-                ctx.strokeStyle = '#333';
+                ctx.strokeStyle = '#555';
                 ctx.fillStyle = '#fff';
 
                 ctx.beginPath();
@@ -51,13 +116,15 @@ function drawMap() {
                 ctx.closePath();
             ctx.restore();
         });
+
+        drawShipsOnMap(currentSystem);
     }
 
-    // Cities
-    ctx.strokeStyle = '#555';
-    ctx.lineWidth = 1;
+    // Planet
+    if (mapData.mapType === mapTypes.planet) {
+        ctx.strokeStyle = '#555';
+        ctx.lineWidth = 1;
 
-    if (envData.current.name[0] === 'P') {
         envData.current.cities.forEach(city => {
             city.roads.forEach(road => {
                 ctx.save();
@@ -82,10 +149,15 @@ function drawMap() {
                 ctx.restore();
             });
         });
-    }
 
-    // Ships
-    envData.current.ships.forEach(ship => {
+        drawShipsOnMap(currentPlanet);
+    }
+}
+
+function drawShipsOnMap(env = {}) {
+    if (!env.ships) return;
+
+    env.ships.forEach(ship => {
         if (ship === playerShip) {
             ctx.fillStyle = '#0a0';
         }
@@ -116,8 +188,26 @@ canvas.addEventListener('click', ({ offsetX, offsetY }) => {
 
     if (!coords) return;
 
-    playerShip.x = coords.x;
-    playerShip.y = coords.y;
+    // playerShip.x = coords.x;
+    // playerShip.y = coords.y;
+});
+
+canvas.addEventListener('mousedown', ({ offsetX, offsetY }) => {
+    if (!mapData.isOpen) return;
+
+    const coords = getCoordsOnMap({ offsetX, offsetY });
+
+    if (!coords) return;
+
+    mapData.startX = coords.x / config.planetWidth * mapData.width + mapData.offsetX;
+    mapData.startY = coords.y / config.planetHeight * mapData.height + mapData.offsetY;
+    mapData.isDragged = true;
+});
+
+canvas.addEventListener('mouseup', () => {
+    if (!mapData.isOpen) return;
+
+    mapData.isDragged = false;
 });
 
 canvas.addEventListener('mousemove', ({ offsetX, offsetY }) => {
@@ -127,7 +217,7 @@ canvas.addEventListener('mousemove', ({ offsetX, offsetY }) => {
 
     if (!coords) return;
 
-    if (envData.current.name[0] === 'S') {
+    if (mapData.mapType === mapTypes.system) {
         const planet = Object.values(currentSystem.planets).find(planet =>
             coords.x > planet.x - 200 - planet.size / 2 &&
             coords.x < planet.x + 200 + planet.size / 2 &&
@@ -136,7 +226,32 @@ canvas.addEventListener('mousemove', ({ offsetX, offsetY }) => {
         );
         
         if (!planet) return;
+    }
 
+    if (mapData.mapType === mapTypes.chunks) {
+        const mapX = coords.x / config.planetWidth * mapData.width;
+        const mapY = coords.y / config.planetHeight * mapData.height;
+
+        if (mapData.isDragged) {
+            mapData.offsetX = mapData.startX - mapX;
+            mapData.offsetY = mapData.startY - mapY;
+        }
+
+        const chunk = Object.values(envData.chunks).find(chunk =>
+            mapX > chunk.x &&
+            mapX < chunk.x + 100 &&
+            mapY > chunk.y &&
+            mapY < chunk.y + 100
+        );
+
+        if (!chunk) return;
+
+        const system = Object.values(chunk.systems).find(system =>
+            mapX > system.x + chunk.x - 2 &&
+            mapX < system.x + chunk.x + 2 &&
+            mapY > system.y + chunk.y - 2 &&
+            mapY < system.y + chunk.y + 2
+        );
     }
 });
 

@@ -1,8 +1,8 @@
 function generateEnv(x, y) {
     const chunkSize = config.chunkSize;
 
-    for (let i = x - chunkSize; i < x + chunkSize * 2; i += chunkSize) {
-        for (let j = y - chunkSize ; j < chunkSize * 2; j += chunkSize) {
+    for (let i = x - chunkSize; i < x + chunkSize * 3; i += chunkSize) {
+        for (let j = y - chunkSize; j < chunkSize * 3; j += chunkSize) {
             let newChunk = {
                 x: i,
                 y: j,
@@ -59,7 +59,7 @@ function createSystemPlanets(system) {
     }
 
     for (let i = 1; i < config.maxPlanetsInSystem + 1; i++) {
-        if (system.seed.unit() > 0.1 && Object.keys(system.planets).length > 1) continue;
+        if (system.seed.unit() > 0.4 && Object.keys(system.planets).length > 1) continue;
 
         const colorId = Math.floor(system.seed.unit() * textureColors.length);
 
