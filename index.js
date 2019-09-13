@@ -734,3 +734,9 @@ function showModal() {
         modalData.y + modalData.halfOffsetY
     );
 }
+
+function tp({ x, y }) {
+    playerShip.x = x;
+    playerShip.y = y;
+    playerShip.currentSpeed = 0;
+}

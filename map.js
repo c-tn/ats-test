@@ -217,6 +217,11 @@ canvas.addEventListener('click', ({ offsetX, offsetY }) => {
     if (mapData.hoveredSystem && !currentPlanet && currentSystem !== mapData.hoveredSystem) {
         enterSystem(mapData.hoveredSystem, mapData.hoveredChunk);
     }
+    
+    if (mapData.mapType !== mapTypes.chunks) {
+        playerShip.x = coords.globalX;
+        playerShip.y = coords.globalY;
+    }
 });
 
 canvas.addEventListener('mousedown', ({ offsetX, offsetY }) => {
