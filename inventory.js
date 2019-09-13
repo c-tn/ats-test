@@ -132,7 +132,7 @@ function showItemDescription() {
         ? -inventoryData.inventoryOffsetY
         : inventoryData.inventoryOffsetY;
 
-    ctx.fillStyle = 'rgba(0, 0, 0, .5)';
+    ctx.fillStyle = 'rgba(255, 255, 255, .5)';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
 
@@ -142,7 +142,7 @@ function showItemDescription() {
         200,
         200
     );
-    ctx.fillStyle = 'rgba(255, 255, 255, .7)';
+    ctx.fillStyle = '#000';
     ctx.font = "20px sans-serif";
 
     ctx.fillText(

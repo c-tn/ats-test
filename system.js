@@ -1,15 +1,17 @@
-function generateEnv(x, y) {
+function generateEnv(x, y, seed) {
     const chunkSize = config.chunkSize;
 
-    for (let i = x - chunkSize; i < x + chunkSize * 3; i += chunkSize) {
-        for (let j = y - chunkSize; j < chunkSize * 3; j += chunkSize) {
+    for (let i = x - chunkSize; i < x + chunkSize * 2; i += chunkSize) {
+        for (let j = y - chunkSize; j < chunkSize * 2; j += chunkSize) {
             let newChunk = {
                 x: i,
                 y: j,
-                name: `C-${ seed.unitString() }`,
-                seed: new RNG(`${ seed.unitString() }${ x }${ y }`),
+                name: '',
+                seed: new RNG(`${ seedValue }${ i }${ j }`),
                 systems: {}
             };
+
+            newChunk.name = `C-${ newChunk.seed.unitString() }`;
 
             if (envData.chunks[newChunk.name]) continue;
 

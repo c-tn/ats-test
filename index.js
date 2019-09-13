@@ -455,6 +455,8 @@ function gameLoop() {
     drawMap();
     drawInventory();
 
+    showModal();
+
     showFPS();
 }
 
@@ -625,6 +627,8 @@ function handleKey(e) {
             mapData.isOpen = e.type === 'keyup'
                 ? !mapData.isOpen
                 : mapData.isOpen;
+
+            modalData.isVisible = false;
             break;
 
         case keys.space:
@@ -693,3 +697,40 @@ function handleTargetButton(e) {
 
 buttons.wrapper.addEventListener('touchstart', handleTargetButton);
 buttons.wrapper.addEventListener('touchend', handleTargetButton);
+
+let modalData = {
+    isVisible: false,
+    x: 0,
+    y: 0,
+    text: '',
+    halfOffsetX: 50,
+    halfOffsetY: 10
+}
+
+/**
+ * Show modal
+ */
+function showModal() {
+    if (!modalData.isVisible) return;
+
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillStyle = 'rgba(255, 255, 255, .3)';
+    ctx.font = "20px sans-serif";
+
+    const rectWidth = ctx.measureText(modalData.text).width + modalData.halfOffsetX * 2;
+
+    ctx.fillRect(
+        modalData.x,
+        modalData.y,
+        rectWidth,
+        100
+    );
+
+    ctx.fillStyle = '#000';
+    ctx.fillText(
+        modalData.text,
+        modalData.x + rectWidth - rectWidth / 2,
+        modalData.y + modalData.halfOffsetY
+    );
+}
