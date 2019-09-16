@@ -1,11 +1,11 @@
-const isDebug = false;
+let isDebug = false;
 
 /**
  * Create cities for planet
  * @param {object} planet 
  */
 function createCities(planet) {
-    const seed = new RNG('' || planet.seed);
+    const seed = new RNG('yvxwmqqsv4d' || planet.seed);
     const citiesCount = 1 || Math.floor(seed.unit() * 2);
 
     for (let i = 0; i < citiesCount; i++) {
@@ -17,7 +17,7 @@ function createCities(planet) {
             angle: (25 * seed.unit() * Math.PI / 180) - (25 * 2 * seed.unit() * Math.PI / 180),
             segmentLength: 500,
             roads: [],
-            builds: []
+            buildings: []
         }
 
         generateRoads(city, 0, city.angle);
@@ -25,9 +25,10 @@ function createCities(planet) {
         for (let i = 0; i < city.roads.length; i++) {
             const road = city.roads[i];
 
-            generateBuildsArea(road, city);
+            generatebuildingsArea(road, city);
         }
 
+        createTriggers(seed, city);
 
         planet.cities.push(city);
     }
@@ -73,10 +74,7 @@ function generateRoads(city, lvl = 0, angle, lastSegment, maxSegments = 20, curr
         newSegment.y2 = interData.y;
     }
 
-    if (tailsData) {
-        newSegment.x2 = tailsData.x;
-        newSegment.y2 = tailsData.y;
-    }
+    if (tailsData) return;
 
     if (currentSegmentsCount > 10 && !interData && city.seed.unit() > 0.7 && lvl < 2) {
         let direction = city.seed.unit() > 0.5
@@ -94,19 +92,19 @@ function generateRoads(city, lvl = 0, angle, lastSegment, maxSegments = 20, curr
 }
 
 /**
- * Generate build for segment
+ * Generate buildings area for segment
  * @param {object} segment 
  * @param {object} city 
  * @param {float} angle 
  */
-function generateBuildsArea(segment, city) {
+function generatebuildingsArea(segment, city) {
     let res = filterByCoords(segment, city.roads);
 
     if (res.length > 3) return;
 
     const angle = Math.atan2(segment.y2 - segment.y1, segment.x2 - segment.x1) + Math.PI;
     const dir = city.seed.unit() > 0.5 ? 1 : -1;
-    const width = city.seed.unit() * config.roadWidth * 2 + config.roadWidth;
+    const width = config.roadWidth * 1.5;
 
     let data = [];
 
@@ -117,18 +115,12 @@ function generateBuildsArea(segment, city) {
         y2: Math.sin(angle) + (config.roadWidth / 2 * dir) * Math.cos(angle) + segment.y2
     }
 
-    let isIntersect = checkBuildIntersects(l1, city);
-    if (isIntersect) return;
-
     let l2 = {
         x1: l1.x2,
         y1: l1.y2,
         x2: Math.cos(angle + Math.PI) * dir + width * Math.sin(angle + Math.PI) * dir + segment.x2,
         y2: Math.sin(angle + Math.PI) * dir - width * Math.cos(angle + Math.PI) * dir + segment.y2
     }
-
-    isIntersect = checkBuildIntersects(l2, city);
-    if (isIntersect) return;
 
     let l3 = {
         x1: l2.x2,
@@ -137,9 +129,6 @@ function generateBuildsArea(segment, city) {
         y2: Math.sin(angle + Math.PI) * dir - width * Math.cos(angle + Math.PI) * dir + segment.y1
     }
 
-    isIntersect = checkBuildIntersects(l3, city);
-    if (isIntersect) return;
-
     let l4 = {
         x1: l3.x2,
         y1: l3.y2,
@@ -147,22 +136,40 @@ function generateBuildsArea(segment, city) {
         y2: l1.y1
     }
 
-    isIntersect = checkBuildIntersects(l4, city);
-    if (isIntersect) return;
-
     data.push(l1);
     data.push(l2);
     data.push(l3);
     data.push(l4);
 
-    city.builds.push(data);
+    const isIntersects = checkBuildIntersects(data, city);
+
+    if (isIntersects) return;
+
+    city.buildings.push(data);
 }
 
-function checkBuildIntersects(segment, city) {
-    const roadInterData = checkIntersects(segment, city.roads);
-    const roadTailsData = checkTails(segment, city.roads, 0.2);
+function checkBuildIntersects(data, city) {
+    for (let i = 0; i < data.length; i++) {
+        const segment = data[i];
 
-    if (roadInterData || roadTailsData) return true;
+        const roadInterData = checkIntersects(segment, city.roads);
+        const roadTailsData = checkTails(segment, city.roads, 0.2);
+
+        if (roadInterData || roadTailsData) return true;
+    }
+
+    for (let i = 0; i < city.buildings.length; i++) {
+        const compareData = city.buildings[i];
+
+        for (let j = 0; j < data.length; j++) {
+            const segment = data[j];
+
+            const interData = checkIntersects(segment, compareData);
+
+            if (interData) return true;
+        }
+        
+    }
 }
 
 /**
@@ -172,14 +179,12 @@ function checkBuildIntersects(segment, city) {
  */
 function checkIntersects(newSegment, data) {
     for (let i = 0; i < data.length; i++) {
-        let segment = data[i];
+        const segment = data[i];
 
         if (
             newSegment === segment ||
             newSegment.x2 === segment.x1 ||
-            newSegment.y2 === segment.y1 ||
-            newSegment.x1 === segment.x2 ||
-            newSegment.y1 === segment.y2
+            newSegment.x1 === segment.x2
         ) break;
 
         const x1 = newSegment.x1;
@@ -192,37 +197,41 @@ function checkIntersects(newSegment, data) {
         const y3 = segment.y1;
         const y4 = segment.y2;
 
-        let m12 = (y2 - y1) / (x2 - x1);
-        let m34 = (y4 - y3) / (x4 - x3);
-        let m = m34 / m12;
-        let x = (x1 - y1 / m12 - m * x3 + y3 / m12) / (1 - m);
-        let y = m12 * (x - x1) + y1;
+        const m12 = (y2 - y1) / (x2 - x1);
+        const m34 = (y4 - y3) / (x4 - x3);
+        const m = m34 / m12;
+        const x = (x1 - y1 / m12 - m * x3 + y3 / m12) / (1 - m);
+        const y = m12 * (x - x1) + y1;
 
         const point = { x, y };
 
         if (
-            point.x >= Math.min(newSegment.x1, newSegment.x2) &&
-            point.x <= Math.max(newSegment.x1, newSegment.x2) &&
-            point.x >= Math.min(segment.x1, segment.x2) &&
-            point.x <= Math.max(segment.x1, segment.x2) &&
-            point.y >= Math.min(newSegment.y1, newSegment.y2) &&
-            point.y <= Math.max(newSegment.y1, newSegment.y2) &&
-            point.y >= Math.min(segment.y1, segment.y2) &&
-            point.y <= Math.max(segment.y1, segment.y2)                    
+            point.x >= Math.min(x1, x2) &&
+            point.x <= Math.max(x1, x2) &&
+            point.x >= Math.min(x3, x4) &&
+            point.x <= Math.max(x3, x4) &&
+            point.y >= Math.min(y1, y2) &&
+            point.y <= Math.max(y1, y2) &&
+            point.y >= Math.min(y1, y2) &&
+            point.y <= Math.max(y1, y2)                    
         ) {
-            let d1 = Math.sqrt(Math.pow(newSegment.x2 - segment.x1, 2) + Math.pow(newSegment.y2 - segment.y1, 2));
-            let d2 = Math.sqrt(Math.pow(newSegment.x2 - segment.x2, 2) + Math.pow(newSegment.y2 - segment.y2, 2));
+            const d1 = Math.sqrt(Math.pow(x2 - x3, 2) + Math.pow(y2 - y1, 2));
+            const d2 = Math.sqrt(Math.pow(x2 - x4, 2) + Math.pow(y2 - y2, 2));
     
             if (d1 > d2) {
                 return {
-                    x: segment.x2,
-                    y: segment.y2,
+                    x: x4,
+                    y: y2,
+                    point,
+                    segment
                 }
             }
             else {
                 return {
-                    x: segment.x1,
-                    y: segment.y1,
+                    x: x3,
+                    y: y1,
+                    point,
+                    segment
                 }
             }
         }
@@ -257,16 +266,16 @@ function checkTails(newSegment, data, radius = 0.7) {
 }
 
 function filterByCoords(segment, data) {
-    return data.filter(iteration =>
-        segment.x1 === iteration.x1 ||
-        segment.x1 === iteration.x2 ||
-        segment.x2 === iteration.x1 ||
-        segment.x2 === itemTypes.x2 ||
+    return data.filter(item =>
+        segment.x1 === item.x1 ||
+        segment.x1 === item.x2 ||
+        segment.x2 === item.x1 ||
+        segment.x2 === item.x2 ||
         
-        segment.y1 === iteration.y1 ||
-        segment.y1 === iteration.y2 ||
-        segment.y2 === iteration.y1 ||
-        segment.y2 === itemTypes.y2
+        segment.y1 === item.y1 ||
+        segment.y1 === item.y2 ||
+        segment.y2 === item.y1 ||
+        segment.y2 === item.y2
     );
 }
 
@@ -277,8 +286,8 @@ function drawRoads() {
     if (envData.current.name[0] !== 'P') return;
 
     ctx.lineWidth = config.roadWidth;
-    ctx.strokeStyle = stonePattern;
-    ctx.fillStyle = stonePattern;
+    ctx.strokeStyle = lightStonePattern;
+    ctx.fillStyle = lightStonePattern;
     ctx.lineCap = 'round';
 
     if (isDebug) {
@@ -311,12 +320,18 @@ function drawRoads() {
 function drawBuildings() {
     if (envData.current.name[0] !== 'P') return;
 
-    ctx.lineWidth = 15;
-    ctx.strokeStyle = lightStonePattern;
+    setShadowsParam(0, 0, 10, '#000');
+    ctx.lineWidth = 10;
+    ctx.strokeStyle = stonePattern;
     ctx.fillStyle = lightStonePattern;
 
+    if (isDebug) {
+        ctx.strokeStyle = 'rgba(255, 255, 255, .2)';
+        ctx.fillStyle = 'rgba(255, 255, 255, .2)';
+    }
+
     envData.current.cities.forEach(city => {
-        city.builds.forEach(build => {
+        city.buildings.forEach(build => {
             ctx.save();
                 ctx.translate(
                     build[0].x1 - camera.x + camera.width / 2,
@@ -331,16 +346,16 @@ function drawBuildings() {
                     build[0].y2 - build[0].y1
                 );
                 ctx.lineTo(
-                    build[1].x1 - build[0].x1,
-                    build[1].y1 - build[0].y1
+                    build[1].x2 - build[0].x1,
+                    build[1].y2 - build[0].y1
                 );
                 ctx.lineTo(
                     build[1].x2 - build[0].x1,
                     build[1].y2 - build[0].y1
                 );
                 ctx.lineTo(
-                    build[2].x1 - build[0].x1,
-                    build[2].y1 - build[0].y1
+                    build[2].x2 - build[0].x1,
+                    build[2].y2 - build[0].y1
                 );
                 ctx.lineTo(
                     build[2].x2 - build[0].x1,
@@ -349,7 +364,8 @@ function drawBuildings() {
 
                 ctx.closePath();
                 ctx.fill();
-                // ctx.stroke();
+                ctx.stroke();
+
             ctx.restore();
         });
     });
@@ -372,19 +388,15 @@ function drawBuildings() {
 
 
 
-function createTriggers() {
-    if (!envData.current.roads.length) return;
+function createTriggers(seed, city) {
+    if (!city.roads.length) return;
 
-    const id = Math.floor((envData.current.roads.length - 1) * seed.unit());
-    const shop = envData.current.buildings[id];
+    const id = Math.floor((city.buildings.length - 1) * seed.unit());
+    const shop = city.buildings[id];
 
-    shop.text = 'shop';
-
-    envData.current.triggers.push({
-        x: shop.x,
-        y: shop.y,
-        id: shop.id,
-        size: shop.size,
+    currentPlanet.triggers.push({
+        zone: [...shop],
+        id: seed.unitString(),
         isOpen: false,
         items: [],
         action() {
@@ -402,12 +414,22 @@ function createTriggers() {
 function checkTriggers() {
     if (!envData.current.triggers) return;
 
-    playerShip.currentTrigger = envData.current.triggers.find(trigger =>
-        playerShip.x > trigger.x &&
-        playerShip.x < trigger.x + trigger.size &&
-        playerShip.y > trigger.y &&
-        playerShip.y < trigger.y + trigger.size
-    );
+    playerShip.currentTrigger = envData.current.triggers.find(trigger => {
+        let inside = false;
+
+        for (let i = 0; i < trigger.zone.length; j = i++) {
+            const x1 = trigger.zone[i].x1;
+            const y1 = trigger.zone[i].y1;
+            const x2 = trigger.zone[i].x2;
+            const y2 = trigger.zone[i].y2;
+
+            const intersect = ((y1 > playerShip.y) != (y2 > playerShip.y)) && (playerShip.x < (x2 - x1) * (playerShip.y - y1) / (y2 - y1) + x1);
+
+            if (intersect) inside = !inside;
+        }
+
+        return inside;   
+    });
 }
 
 function pushShips(planet) {

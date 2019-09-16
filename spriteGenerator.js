@@ -107,6 +107,8 @@ class Sprite {
     }
 
     generateRandomSample() {
+        if (this.setup.isNoSample) return;
+
         for (let y = 0; y < this.height; y++) {
             for (let x = 0; x < this.width; x++) {
                 let val = this.getData(x, y);
@@ -121,6 +123,8 @@ class Sprite {
     }
 
     generateEdges() {
+        if (this.setup.isNoEdges) return;
+        
         for (let y = 0; y < this.height; y++) {
             for (let x = 0; x < this.width; x++) {
                 if (this.getData(x, y) > 0) {

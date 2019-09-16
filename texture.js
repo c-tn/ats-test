@@ -83,11 +83,8 @@ async function createPlanetTexture(planet) {
     planetTextureImg.src = textureCanvas.toDataURL();
 
     return new Promise(res => {
-        planetTextureImg.onload = () => {
-            res(planetTextureImg);
-        };
-    })
-
+        planetTextureImg.onload = res(planetTextureImg);
+    });
 }
 
 function drawLandscape() {

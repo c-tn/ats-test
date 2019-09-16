@@ -31,6 +31,19 @@ let data = [
 
 let seedInput = document.getElementById('seed');
 
+const divide = document.getElementById('divide');
+const edges = document.getElementById('edges');
+
+divide.addEventListener('input', () => {
+    sprite = generateSprite({ hue, seed, saturation, data });
+    draw();
+});
+
+edges.addEventListener('input', () => {
+    sprite = generateSprite({ hue, seed, saturation, data });
+    draw();
+});
+
 seedInput.addEventListener('input', ({ target }) => {
     seed = target.value;
 
@@ -56,7 +69,9 @@ function generateSprite({
         hue,
         saturation,
         seed,
-        isColored: true
+        isColored: true,
+        isNoEdges: !edges.checked,
+        isNoSample: !divide.checked
     });
 
     let resizedSprite = sprite.resize(sprite.canvas, 5);
