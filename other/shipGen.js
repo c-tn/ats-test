@@ -74,7 +74,7 @@ function generateSprite({
         isNoSample: !divide.checked
     });
 
-    let resizedSprite = sprite.resize(sprite.canvas, 5);
+    let resizedSprite = resize(sprite.canvas, 5);
 
     return resizedSprite;
 }

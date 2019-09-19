@@ -6,7 +6,7 @@ async function createPlanetSprite(planet) {
 
     const type = planet.name[0];
     const amp = type === 'V' ? 3 : seed.unit() * 2 + 0.3;
-    const freq = type === 'V' ? 0.03 : 0.01;
+    const freq = type === 'V' ? 0.03 : 0.004;
     const { color } = planet;
 
     const planetNoise = planetGenerator.generateNoise(seed.unitString(), amp, freq, 1040, 1040, color.r, color.g, color.b, planet.size);
@@ -14,11 +14,11 @@ async function createPlanetSprite(planet) {
 
     ctx.putImageData(planetTexture.imageData, 0, 0);
 
-    let image = new Image();
-    image.src = tempCanvas.toDataURL();
+    let planetSprite = new Image();
+    planetSprite.src = tempCanvas.toDataURL();
 
     return new Promise(res => {
-        image.onload = res(image);
+        planetSprite.onload = res(planetSprite);
     });
 }
 

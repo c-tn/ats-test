@@ -20,7 +20,7 @@ function generateSprite({
         isColored: true
     });
 
-    let resizedSprite = sprite.resize(sprite.canvas, 5);
+    let resizedSprite = resize(sprite.canvas, 5);
 
     return resizedSprite;
 }
@@ -64,11 +64,6 @@ canvas.width = 1280;
 canvas.height = 720;
 
 const ctx = canvas.getContext('2d');
-
-const sites = d3.range(20).map(() => [Math.random() * 10000, Math.random() * 10000]);
-const voronoi = d3.voronoi().extent([[-1, -1], [10000, 10000]]);
-const diagram = voronoi(sites);
-const poly = diagram.polygons();
 
 let envData = {
     chunks: {},
@@ -440,8 +435,6 @@ ctx.textAlign = 'center';
 
 // LOOP
 function gameLoop() {
-    ctx.fillStyle = '#000';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     updateShip();
@@ -451,13 +444,11 @@ function gameLoop() {
     drawLandscape();
     drawRoads();
     drawBuildings();
-    drawOther();
     drawPlanets();
     drawBullets();
     drawShips();
     drawParticles();
     drawShop();
-
 
     drawMap();
     drawInventory();

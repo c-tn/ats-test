@@ -239,42 +239,42 @@ class Sprite {
 
         return result;
     }
+}
 
-    resize(img, scale) {
-        let scaledWidth = img.width * scale;
-        let scaledHeight = img.height * scale;
-    
-        let original = document.createElement('canvas');
-        original.width = img.width;
-        original.height = img.height;
-    
-        let originalCtx = original.getContext('2d');
-    
-        originalCtx.drawImage(img, 0, 0);
-    
-        let originalPixels = originalCtx.getImageData(0, 0, img.width, img.height);
-    
-        let scaled = document.createElement('canvas');
-        scaled.width = scaledWidth;
-        scaled.height = scaledHeight;
-    
-        let scaledCtx = scaled.getContext('2d');
-        let scaledPixels = scaledCtx.getImageData(0, 0, scaledWidth, scaledHeight);
-    
-        for (let y = 0; y < scaledHeight; y++) {
-            for (let x = 0; x < scaledWidth; x++) {
-                let index = (Math.floor(y / scale) * img.width + Math.floor(x / scale)) * 4;
-                let indexSclaed = (y * scaledWidth + x) * 4;
-    
-                scaledPixels.data[indexSclaed + 0] = originalPixels.data[index + 0];
-                scaledPixels.data[indexSclaed + 1] = originalPixels.data[index + 1];
-                scaledPixels.data[indexSclaed + 2] = originalPixels.data[index + 2];
-                scaledPixels.data[indexSclaed + 3] = originalPixels.data[index + 3];
-            }
+function resize(img, scale, width, height) {
+    let scaledWidth = width || img.width * scale;
+    let scaledHeight = height || img.height * scale;
+
+    let original = document.createElement('canvas');
+    original.width = img.width;
+    original.height = img.height;
+
+    let originalCtx = original.getContext('2d');
+
+    originalCtx.drawImage(img, 0, 0);
+
+    let originalPixels = originalCtx.getImageData(0, 0, img.width, img.height);
+
+    let scaled = document.createElement('canvas');
+    scaled.width = scaledWidth;
+    scaled.height = scaledHeight;
+
+    let scaledCtx = scaled.getContext('2d');
+    let scaledPixels = scaledCtx.getImageData(0, 0, scaledWidth, scaledHeight);
+
+    for (let y = 0; y < scaledHeight; y++) {
+        for (let x = 0; x < scaledWidth; x++) {
+            let index = (Math.floor(y / scale) * img.width + Math.floor(x / scale)) * 4;
+            let indexSclaed = (y * scaledWidth + x) * 4;
+
+            scaledPixels.data[indexSclaed + 0] = originalPixels.data[index + 0];
+            scaledPixels.data[indexSclaed + 1] = originalPixels.data[index + 1];
+            scaledPixels.data[indexSclaed + 2] = originalPixels.data[index + 2];
+            scaledPixels.data[indexSclaed + 3] = originalPixels.data[index + 3];
         }
-    
-        scaledCtx.putImageData(scaledPixels, 0, 0);
-    
-        return scaled;
     }
+
+    scaledCtx.putImageData(scaledPixels, 0, 0);
+
+    return scaled;
 }
