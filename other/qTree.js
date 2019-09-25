@@ -140,12 +140,12 @@ class QuadTree {
             this.bottomRight.draw();
         }
 
-        ctx.fillStyle = '#f00';
-        for (let p of this.points) {
-            ctx.beginPath();
-            ctx.arc(p.x - cameraData.offsetX, p.y - cameraData.offsetY, 2, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.closePath();
-        }
+        // ctx.fillStyle = '#f00';
+        // for (let p of this.points) {
+        //     ctx.beginPath();
+        //     ctx.arc(p.x - cameraData.offsetX, p.y - cameraData.offsetY, 2, 0, Math.PI * 2);
+        //     ctx.fill();
+        //     ctx.closePath();
+        // }
     }
 }
