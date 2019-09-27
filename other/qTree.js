@@ -7,28 +7,35 @@ function createPoint(x, y, data) {
 }
 
 function createRect(x, y, w, h) {
-    return { x, y, w, h }
+    return { x, y, w, h, type: 'rect' }
 }
 
 function createCircle(x, y, d) {
-    return { x, y, d }
+    return { x, y, d, type: 'circle' }
 }
 
-function checkPointInRect(boundary, point) {
-    if (boundary.w === undefined) {
-        const d = Math.sqrt( (point.x - boundary.x)**2 + (point.y - boundary.y)**2 );
+function checkPointInRect(rect, point) {
+    return (
+        point.x > rect.x &&
+        point.x < rect.x + rect.w &&
+        point.y > rect.y &&
+        point.y < rect.y + rect.h
+    );
+}
 
-        if (d < boundary.d) {
-            return true;
-        }
+function checkPointInRange(range, point) {
+    switch (range.type) {
+        case 'rect': return checkPointInRect(range, point);
+        case 'circle': return checkPointInCircle(range, point);
+        default: return false;
     }
-    else {
-        return (
-            point.x > boundary.x &&
-            point.x < boundary.x + boundary.w &&
-            point.y > boundary.y &&
-            point.y < boundary.y + boundary.h
-        );
+}
+
+function checkPointInCircle(circle, point) {
+    const d = Math.sqrt( (point.x - circle.x)**2 + (point.y - circle.y)**2 );
+
+    if (d < circle.d) {
+        return true;
     }
 }
 
@@ -83,7 +90,7 @@ class QuadTree {
         }
         else {
             for (let p of this.points) {
-                if (checkPointInRect(range, p)) {
+                if (checkPointInRange(range, p)) {
                     arr.push(p);
                 }
             }

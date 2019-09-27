@@ -15,14 +15,10 @@ console.log(seedValue);
  * cross controll
  * extrime angle controll
  * x2 and y2 intersects check
+ * tails connect
  * 
- * Bugs seed
- * dtkr6objfll - extra angle
- * qf487ahug1h - extra angle
- * 
- * 7c6htacsbho - problem with split
- * 
- * goxemy4mo94 - no intersects in x2 and y2
+ * Bugs seed * 
+ * ktnahotb3lp - tails connect
  */
 
 let cameraData = {
@@ -36,11 +32,13 @@ let cameraData = {
 }
 let globalRect = createRect(-qTreeCenterX, -qTreeCenterY, canvas.width * fields, canvas.height * fields);
 let qtree = new QuadTree(globalRect, 4);
-let seed = new RNG('' || seedValue);
+let seed = new RNG('mviatou8du' || seedValue);
 let segments = [];
 let isDebug = true;
 let debugRects = [];
 let debugPoints = [];
+let selectCircle = null;
+let mouseCircle = createCircle(0, 0, 50);
 
 const cos = Math.cos;
 const sin = Math.sin;
@@ -51,13 +49,10 @@ const maxLevels = 3;
 const initCrossCounter = 6;
 
 function generateSegments({ prevSegment, angle, counter = 0, maxSegments = 50, lvl = 0, crossCounter = initCrossCounter }) {
-    const lastPoint = createPoint(prevSegment.coords[0], prevSegment.coords[1], prevSegment);
-
-    qtree.insert(lastPoint);
-
     angle += angleOffset * seed.unit() * Math.PI / 180 - angleOffset * seed.unit() * Math.PI / 180;
 
     let nextSegment = {
+        prevSegment,
         coords: [
             prevSegment.coords[2],
             prevSegment.coords[3],
@@ -67,51 +62,77 @@ function generateSegments({ prevSegment, angle, counter = 0, maxSegments = 50, l
         padding: []
     }
 
-    const selectCircle = createCircle(nextSegment.coords[0], nextSegment.coords[1], segmentLength * 0.9);
-    const crossCircle = createCircle(nextSegment.coords[0], nextSegment.coords[1], segmentLength * 1.9);
-    const selectedPoints = qtree.query(selectCircle);
-    const crossPoints = qtree.query(crossCircle);
+    qtree.insert(createPoint(prevSegment.coords[2], prevSegment.coords[3], prevSegment));
 
-    if (selectedPoints.length) {
+    selectCircle = createCircle(nextSegment.coords[0], nextSegment.coords[1], segmentLength * 2.1);
+
+    let selectedPoints = qtree.query(selectCircle);
+    let prevSegments = getLastSegments(prevSegment, 4);
+
+    selectedPoints = selectedPoints.filter(point => {
+        const isException = prevSegments.find(segment => segment.coords[0] === point.x || segment.coords[2] === point.x);
+
+        if (!isException) return point;
+    });
+
+    debugPoints = selectedPoints;
+
+    if (selectedPoints.length > 2) {
         if (!prevSegment.prevSegment) return;
+
+        let nearestPoint = 0;
+        let minDist = Infinity;
+
+        selectedPoints.forEach((point, i) => {
+            const d = Math.sqrt((prevSegment.coords[3] - point.y)**2 + (prevSegment.coords[2] - point.x)**2);
+
+            if (d < minDist) {
+                minDist = d;
+                nearestPoint = i;
+            }
+        });
         
-        isDebug && debugPoints.push(...selectedPoints);
-        prevSegment.coords[2] = selectedPoints[0].x;
-        prevSegment.coords[3] = selectedPoints[0].y;
+        prevSegment.coords[2] = selectedPoints[nearestPoint].x;
+        prevSegment.coords[3] = selectedPoints[nearestPoint].y;
 
-        prevSegment.padding = [];
+        prevSegment.padding = prevSegment.padding ? prevSegment.padding : [];
 
-        const newAngle = Math.atan2(prevSegment.coords[1] - selectedPoints[0].y, prevSegment.coords[0] - selectedPoints[0].x) + Math.PI;
+        const newAngle = Math.atan2(prevSegment.coords[1] - selectedPoints[nearestPoint].y, prevSegment.coords[0] - selectedPoints[nearestPoint].x) + Math.PI;
 
+        if (!selectedPoints[nearestPoint].data.padding.length) return;
         createPadding(prevSegment, newAngle);
         connectPaddings(prevSegment.prevSegment, prevSegment);
 
         const mainPaddings = prevSegment.padding;
-        const nextPaddings = selectedPoints[0].data.padding;
-        const prevPaddings = selectedPoints[0].data.prevSegment
-            ? selectedPoints[0].data.prevSegment.padding
-            : selectedPoints[0].data.padding;
-
+        const nextPaddings = selectedPoints[nearestPoint].data.padding;
+        const prevPaddings = selectedPoints[nearestPoint].data.prevSegment
+            ? selectedPoints[nearestPoint].data.prevSegment.padding
+            : selectedPoints[nearestPoint].data.padding;    
+            
         const interData = cutPaddings(mainPaddings, prevPaddings, nextPaddings);
-
+        
         mainPaddings[1] = [ interData.firstIntersect.x, interData.firstIntersect.y ];
         mainPaddings[2] = [ interData.secondInterset.x, interData.secondInterset.y ];
 
         return;
     }
 
+
+    qtree.insert(createPoint(nextSegment.coords[2], nextSegment.coords[3], nextSegment));
     createPadding(nextSegment, angle);
     connectPaddings(prevSegment, nextSegment);
+
     nextSegment.prevSegment = prevSegment;
 
     segments.push(nextSegment);
 
-    if (seed.unit() > 0.9 && lvl < maxLevels && counter > 0 && crossCounter < 0 && crossPoints.length < 2) {
+    if (seed.unit() > 0.9 && lvl < maxLevels && counter > 0 && crossCounter < 0 && counter < maxSegments - 2) {
         const direction = seed.unit() > 0.5 ? 1 : -1;
 
         crossCounter = initCrossCounter;
 
         prevSegment.cross = nextSegment;
+        nextSegment.cross = prevSegment;
 
         splitSegment({
             prevSegment: nextSegment,
@@ -140,6 +161,7 @@ function splitSegment(data) {
     const coords = data.prevSegment.coords;
 
     let splitedSegment = {
+        cross: data.prevSegment,
         coords: [
             coords[0],
             coords[1],
@@ -231,8 +253,8 @@ function createPadding(segment, angle) {
 }
 
 function connectPaddings(prevSegment, nextSegment) {
-    const prevPaddings = prevSegment.padding;
-    const nextPaddings = nextSegment.padding;
+    const prevPaddings = prevSegment.padding ? prevSegment.padding : prevSegment;
+    const nextPaddings = nextSegment.padding ? nextSegment.padding : nextSegment;
 
     for (let i = 0; i < 3; i += 2) {
         const prevLine = [ prevPaddings[i][0], prevPaddings[i][1], prevPaddings[i + 1][0], prevPaddings[i + 1][1] ];
@@ -289,6 +311,51 @@ function checkIntersects(l1, l2, isLineIntersects) {
     }
 }
 
+function getLastSegments(segment, count, segments = [], isCrossed) {
+    for (let i = 0; i < count; i++) {
+        segments.push(segment);
+
+        if (segment.cross && !isCrossed) {
+            getLastSegments(segment.cross, count, segments, true);
+        }
+
+        if (segment.prevSegment) {
+            segment = segment.prevSegment;
+        }
+    }
+
+    return segments;
+}
+
+let buildings = [];
+
+function createBuildingZone() {
+    for (let i = 0; i < segments.length; i++) {
+        const segment = segments[i];
+
+        if (segment.cross) continue;
+
+        const coords = segment.coords;
+        const paddings = segment.padding;
+
+        const angle = Math.atan2(coords[1] - coords[3], coords[0] - coords[2]) + Math.PI;
+
+        buildings.push([
+            [ cos(angle) - padding * 2 * sin(angle) + paddings[0][0], sin(angle) + padding * 2 * cos(angle) + paddings[0][1] ],
+            [ cos(angle) - padding * 2 * sin(angle) + paddings[1][0], sin(angle) + padding * 2 * cos(angle) + paddings[1][1] ],
+            [ cos(angle) + padding * -1 * sin(angle) + paddings[1][0], sin(angle) - padding * -1 * cos(angle) + paddings[1][1] ],
+            [ cos(angle) + padding * -1 * sin(angle) + paddings[0][0], sin(angle) - padding * -1 * cos(angle) + paddings[0][1] ]
+        ]);
+
+        buildings.push([
+            [ cos(angle) - padding * -4 * sin(angle) + paddings[0][0], sin(angle) + padding * -4 * cos(angle) + paddings[0][1] ],
+            [ cos(angle) - padding * -4 * sin(angle) + paddings[1][0], sin(angle) + padding * -4 * cos(angle) + paddings[1][1] ],
+            [ cos(angle) + padding * 3 * sin(angle) + paddings[1][0], sin(angle) - padding * 3 * cos(angle) + paddings[1][1] ],
+            [ cos(angle) + padding * 3 * sin(angle) + paddings[0][0], sin(angle) - padding * 3 * cos(angle) + paddings[0][1] ]
+        ]);
+    }
+}
+
 function loop() {
     ctx.fillStyle = '#000';
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -299,6 +366,26 @@ function loop() {
 
     qtree.draw();
     drawSegments();
+    drawBuildings();
+
+    if (selectCircle) {
+        ctx.strokeStyle = '#f00';
+        ctx.beginPath();
+        ctx.arc(
+            selectCircle.x - cameraData.x,
+            selectCircle.y - cameraData.y,
+            segmentLength * 2.1, 0, Math.PI * 2
+        );
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(
+            mouseCircle.x - cameraData.x,
+            mouseCircle.y - cameraData.y,
+            mouseCircle.d, 0, Math.PI * 2
+        );
+        ctx.stroke();
+    }
 
     requestAnimationFrame(loop);
 }
@@ -317,7 +404,7 @@ function drawSegments() {
         ctx.stroke();
 
         ctx.beginPath();
-        ctx.arc(coords[0] - cameraData.x, coords[1] - cameraData.y, segmentLength, 0, Math.PI * 2);
+        ctx.arc(coords[0] - cameraData.x, coords[1] - cameraData.y, segmentLength * 0.9, 0, Math.PI * 2);
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
         isDebug && ctx.stroke();
 
@@ -341,6 +428,32 @@ function drawSegments() {
     });
 }
 
+function drawBuildings() {
+    ctx.strokeStyle = '#fff';
+    ctx.fillStyle = 'rgba(255, 255, 255, .3)';
+
+    for (let i = 0; i < buildings.length; i++) {
+        const build = buildings[i];
+
+        ctx.beginPath();
+        ctx.moveTo(
+            build[0][0] - cameraData.x,
+            build[0][1] - cameraData.y
+        );
+
+        for (let j = 1; j < build.length; j++) {
+            ctx.lineTo(
+                build[j][0] - cameraData.x,
+                build[j][1] - cameraData.y
+            );
+        }
+
+        ctx.closePath();
+        ctx.stroke();
+        ctx.fill();
+    }
+}
+
 const startAngle = Math.PI * 2 * seed.unit();
 const startSegment = {
     coords: [
@@ -352,6 +465,7 @@ const startSegment = {
     padding: []
 }
 
+qtree.insert(createPoint(startSegment.coords[0], startSegment.coords[1], startSegment));
 createPadding(startSegment, startAngle);
 segments.push(startSegment);
 generateSegments({
@@ -359,9 +473,14 @@ generateSegments({
     angle: startAngle
 });
 
+// createBuildingZone();
+
 loop();
 
 canvas.addEventListener('mousedown', ({ offsetX, offsetY }) => {
+    const selectedPoints = qtree.query(createCircle(mouseCircle.x, mouseCircle.y, mouseCircle.d));
+    console.log(selectedPoints);
+
     const x = offsetX / window.innerWidth * canvas.width;
     const y = offsetY / window.innerHeight * canvas.height;
 
@@ -375,10 +494,14 @@ canvas.addEventListener('mouseup', () => {
 });
 
 canvas.addEventListener('mousemove', ({ offsetX, offsetY }) => {
-    if (!cameraData.isMoving) return;
-
     const x = offsetX / window.innerWidth * canvas.width;
     const y = offsetY / window.innerHeight * canvas.height;
+
+    mouseCircle = createCircle(x + cameraData.x, y + cameraData.y, mouseCircle.d);
+
+    debugPoints = qtree.query(mouseCircle);
+
+    if (!cameraData.isMoving) return;
 
     cameraData.offsetX = cameraData.startX - x;
     cameraData.offsetY = cameraData.startY - y;
