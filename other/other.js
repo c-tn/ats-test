@@ -99,7 +99,7 @@ function generateSegments({ prevSegment, angle, counter = 0, maxSegments = 50, l
 
         const newAngle = Math.atan2(prevSegment.coords[1] - selectedPoints[nearestPoint].y, prevSegment.coords[0] - selectedPoints[nearestPoint].x) + Math.PI;
 
-        if (!selectedPoints[nearestPoint].data.padding.length) return;
+        prevSegment.padding = [];
         createPadding(prevSegment, newAngle);
         connectPaddings(prevSegment.prevSegment, prevSegment);
 
@@ -473,7 +473,7 @@ generateSegments({
     angle: startAngle
 });
 
-// createBuildingZone();
+createBuildingZone();
 
 loop();
 
