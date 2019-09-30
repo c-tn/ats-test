@@ -1,0 +1,224 @@
+:root {
+    --red       : #D32F2F;
+    --red-dark  : #B71C1C;
+    --blue      : #303F9F;
+    --blue-dark : #1A237E;
+
+    --gray       : #616161;
+    --gray-dark  : #212121;
+    --gray-light : #BDBDBD;
+
+    font-size: 16px;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+}
+
+html {
+    font-family: FFFFORWA;
+    overflow: hidden;
+}
+
+@font-face {
+    font-family: 'FFFFORWA';
+    src: url('./../fonts/FFFFORWA.eot');
+    src: url('./../fonts/FFFFORWA.eot') format('embedded-opentype'),
+        url('./../fonts/FFFFORWA.woff2') format('woff2'),
+        url('./../fonts/FFFFORWA.woff') format('woff'),
+        url('./../fonts/FFFFORWA.ttf') format('truetype'),
+        url('./../fonts/FFFFORWA.svg#FFFFORWA') format('svg');
+}
+
+.game-name {
+    padding-top: 10rem;
+    width: 100%;
+    color: #aaa;
+    font-size: 4rem;
+    text-align: center;
+    user-select: none;
+    animation: text-glitch 1s linear .5s infinite;
+}
+
+.tv-effect {
+    width  : 100vw;
+    height : 100vh;
+    color  : #fff;
+    background-color: #222;
+    perspective: 25px;
+}
+
+.tv-effect:after {
+    content          : '';
+    position         : absolute;
+    top              : 0;
+    bottom           : 0;
+    left             : 0;
+    right            : 0;
+    background-color : var(--blue);
+    background-image : 
+        linear-gradient(to top,
+            rgba(255, 255, 255, 0.2) 33.3%,
+            rgba(255, 255, 255, 0.4) 33.3%,
+            rgba(255, 255, 255, 0.4) 66.7%,
+            rgba(255, 255, 255, 0.6) 66.7%),
+        linear-gradient(to right,
+            rgba(255, 0, 0, 0.7) 33.3%,
+            rgba(0, 255, 0, 0.7) 33.3%,
+            rgba(0, 255, 0, 0.6) 66.7%,
+            rgba(0, 0, 255, 0.6) 66.7%
+        );
+    background-size : 3px 3px;
+    mix-blend-mode  : multiply;
+    pointer-events  : none;
+}
+
+.menu {
+    position         : relative;
+    height           : 100vh;
+    background-color : var(--gray-dark);
+    overflow         : hidden;
+}
+
+.menu__content-holder {
+    width           : 100vw;
+    height          : 100vh;
+    display         : flex;
+    justify-content : center;
+    align-items     : center;
+    align-content   : center;
+    overflow        : hidden;
+}
+
+.menu .menu__content {
+    position         : relative;
+    display          : flex;
+    flex-wrap        : wrap;
+    flex-direction   : column;
+    height           : 0;
+    overflow         : hidden;
+    background-color : var(--gray);
+}
+
+.menu_on .menu__content {
+    animation: screen-turn-on .4s linear .5s 1 forwards;
+}
+
+.menu_off .menu__content {
+    animation: screen-turn-off .4s linear .5s 1 backwards;
+}
+
+/*  */
+/* ANIMATIONS */
+/*  */
+@keyframes text-glitch {
+    0%   {  transform: translate(1px, 1px); text-shadow: 6px 0 var(--red-dark), -6px 0 var(--blue-dark);  }
+    5%   {  transform: translate(1px, 1px); text-shadow: 3px 0 var(--red-dark), -3px 0 var(--blue-dark);  }
+    10%  {  transform: translate(1px, 1px); text-shadow: 5px 0 var(--red-dark), -5px 0 var(--blue-dark);  }
+    15%  {  transform: translate(1px, 1px); text-shadow: 7px 0 var(--red-dark), -7px 0 var(--blue-dark);  }
+    20%  {  transform: translate(1px, 2px); text-shadow: 2px 0 var(--red-dark), -2px 0 var(--blue-dark);  }
+    25%  {  transform: translate(1px, 2px); text-shadow: 2px 0 var(--red-dark), -2px 0 var(--blue-dark);  }
+    30%  {  transform: translate(1px, 2px); text-shadow: 3px 0 var(--red-dark), -3px 0 var(--blue-dark);  }
+    35%  {  transform: translate(1px, 2px); text-shadow: 2px 0 var(--red-dark), -2px 0 var(--blue-dark);  }
+    40%  {  transform: translate(2px, 1px); text-shadow: 2px 0 var(--red-dark), -2px 0 var(--blue-dark);  }
+    45%  {  transform: translate(2px, 1px); text-shadow: 3px 0 var(--red-dark), -3px 0 var(--blue-dark);  }
+    50%  {  transform: translate(2px, 1px); text-shadow: 3px 0 var(--red-dark), -3px 0 var(--blue-dark);  }
+    55%  {  transform: translate(2px, 1px); text-shadow: 4px 0 var(--red-dark), -4px 0 var(--blue-dark);  }
+    60%  {  transform: translate(1px, 1px); text-shadow: 2px 0 var(--red-dark), -2px 0 var(--blue-dark);  }
+    65%  {  transform: translate(1px, 1px); text-shadow: 5px 0 var(--red-dark), -5px 0 var(--blue-dark);  }
+    70%  {  transform: translate(1px, 1px); text-shadow: 3px 0 var(--red-dark), -3px 0 var(--blue-dark);  }
+    75%  {  transform: translate(1px, 1px); text-shadow: 2px 0 var(--red-dark), -2px 0 var(--blue-dark);  }
+    80%  {  transform: translate(2px, 1px); text-shadow: 5px 0 var(--red-dark), -5px 0 var(--blue-dark);  }
+    85%  {  transform: translate(2px, 1px); text-shadow: 3px 0 var(--red-dark), -3px 0 var(--blue-dark);  }
+    90%  {  transform: translate(2px, 2px); text-shadow: 5px 0 var(--red-dark), -5px 0 var(--blue-dark);  }
+    95%  {  transform: translate(2px, 2px); text-shadow: 2px 0 var(--red-dark), -2px 0 var(--blue-dark);  }
+    100% {  transform: translate(1px, 2px); text-shadow: 3px 0 var(--red-dark), -3px 0 var(--blue-dark);  }
+}
+
+@keyframes screen-turn-on {
+    0% {
+        width            : 0%;
+        height           : 1px;
+        border-radius    : 0px;
+        background-color : var(--gray);
+    }
+    50% {
+        width            : 100%;
+        height           : 1px;
+        border-radius    : 0px;
+        background-color : var(--gray);
+    }
+    51% {
+        width            : 100%;
+        height           : 1px;
+        border-radius    : 0px;
+        background-color : var(--gray);
+    }
+    70% {
+        width            : 100%;
+        height           : 1px;
+        border-radius    : 0px;
+        background-color : var(--gray);
+    }
+    80% {
+        width            : 100%;
+        height           : 100vh;
+        border-radius    : 5px;
+        background-color : var(--gray);
+    }
+    100% {
+        width            : 100%;
+        height           : 100vh;
+        border-radius    : 5px;
+        background-color : var(--gray-dark);
+    }
+}
+
+@keyframes screen-turn-off {
+    0% {
+        width            : 100%;
+        height           : 100vh;
+        border-radius    : 5px;
+        background-color : var(--gray-dark);
+    }
+    50% {
+        width            : 100%;
+        height           : 100vh;
+        border-radius    : 5px;
+        background-color : var(--gray);
+    }
+    51% {
+        width            : 100%;
+        height           : 1px;
+        border-radius    : 0px;
+        background-color : var(--gray);
+    }
+    70% {
+        width            : 100%;
+        height           : 1px;
+        border-radius    : 0px;
+        background-color : var(--gray);
+    }
+    80% {
+        width            : 100%;
+        height           : 1px;
+        border-radius    : 0px;
+        background-color : var(--gray);
+    }
+    100% {
+        width            : 0%;
+        height           : 1px;
+        border-radius    : 0px;
+        background-color : var(--gray);
+    }
+}
