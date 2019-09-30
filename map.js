@@ -152,28 +152,34 @@ function drawMap() {
     if (mapData.mapType === mapTypes.planet) {
         ctx.lineWidth = 1;
 
-        envData.current.roads.forEach(road => {
-            ctx.save();
-                ctx.translate(
-                    canvas.width / 2 - mapData.width / 2,
-                    canvas.height / 2 - mapData.height / 2
-                );
-                
-                ctx.beginPath();
-        
-                ctx.moveTo(
-                    road.x1 / config.planetWidth * mapData.width + mapData.width / 2,
-                    road.y1 / config.planetHeight * mapData.height + mapData.height / 2
-                );
+        for (let i = 0; i < envData.current.roads.length; i++) {
+            const roads = envData.current.roads[i];
 
-                ctx.lineTo(
-                    road.x2 / config.planetWidth * mapData.width + mapData.width / 2,
-                    road.y2 / config.planetHeight * mapData.height + mapData.height / 2
-                );
-        
-                ctx.stroke();
-            ctx.restore();
-        });
+            for (let j = 0; j < roads.length; j++) {
+                const segment = roads[j].coords
+
+                ctx.save();
+                    ctx.translate(
+                        canvas.width / 2 - mapData.width / 2,
+                        canvas.height / 2 - mapData.height / 2
+                    );
+
+                    ctx.beginPath();
+
+                    ctx.moveTo(
+                        segment[0] / config.planetWidth * mapData.width + mapData.width / 2,
+                        segment[1] / config.planetHeight * mapData.height + mapData.height / 2
+                    );
+
+                    ctx.lineTo(
+                        segment[2] / config.planetWidth * mapData.width + mapData.width / 2,
+                        segment[3] / config.planetHeight * mapData.height + mapData.height / 2
+                    );
+
+                    ctx.stroke();
+                ctx.restore();
+            }
+        }
 
         drawShipsOnMap(currentPlanet);
     }

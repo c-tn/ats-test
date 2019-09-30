@@ -3,13 +3,17 @@ const config = {
     maxSystemsInChunk: 10,
     maxPlanetsInSystem: 7,
     minPlanetSize: 500,
-    roadWidth: 250,
+    roadPadding: 120,
+    roadLength: 500,
+    angleOffset: 25,
     planetWidth: 200000,
     planetHeight: 100000
 }
 
-function pointInPoly(polyCords, pointX, pointY)
-{
+const cos = Math.cos;
+const sin = Math.sin;
+
+function pointInPoly(polyCords, pointX, pointY) {
 	var i, j, c = 0;
  
 	for (i = 0, j = polyCords.length - 1; i < polyCords.length; j = i++)

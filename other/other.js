@@ -19,6 +19,7 @@ console.log(seedValue);
  * 
  * Bugs seed * 
  * ktnahotb3lp - tails connect
+ * 
  */
 
 let cameraData = {
@@ -32,7 +33,7 @@ let cameraData = {
 }
 let globalRect = createRect(-qTreeCenterX, -qTreeCenterY, canvas.width * fields, canvas.height * fields);
 let qtree = new QuadTree(globalRect, 4);
-let seed = new RNG('mviatou8du' || seedValue);
+let seed = new RNG('' || seedValue);
 let segments = [];
 let isDebug = true;
 let debugRects = [];
@@ -61,6 +62,8 @@ function generateSegments({ prevSegment, angle, counter = 0, maxSegments = 50, l
         ],
         padding: []
     }
+
+    prevSegment.nextSegment = nextSegment;
 
     qtree.insert(createPoint(prevSegment.coords[2], prevSegment.coords[3], prevSegment));
 
@@ -91,16 +94,27 @@ function generateSegments({ prevSegment, angle, counter = 0, maxSegments = 50, l
                 nearestPoint = i;
             }
         });
+
+        qtree.remove(createPoint(prevSegment.coords[2], prevSegment.coords[3]));
         
         prevSegment.coords[2] = selectedPoints[nearestPoint].x;
         prevSegment.coords[3] = selectedPoints[nearestPoint].y;
+
+        const selectCircle = createCircle(prevSegment.coords[2], prevSegment.coords[3], 1);
+        const crossSegment = qtree.query(selectCircle)[0].data;
+
+        if (crossSegment) {
+            crossSegment.cross = prevSegment;
+            prevSegment.cross = crossSegment;
+        }
+
 
         prevSegment.padding = prevSegment.padding ? prevSegment.padding : [];
 
         const newAngle = Math.atan2(prevSegment.coords[1] - selectedPoints[nearestPoint].y, prevSegment.coords[0] - selectedPoints[nearestPoint].x) + Math.PI;
 
         prevSegment.padding = [];
-        createPadding(prevSegment, newAngle);
+        createPadding(prevSegment, newAngle); 
         connectPaddings(prevSegment.prevSegment, prevSegment);
 
         const mainPaddings = prevSegment.padding;
@@ -126,7 +140,7 @@ function generateSegments({ prevSegment, angle, counter = 0, maxSegments = 50, l
 
     segments.push(nextSegment);
 
-    if (seed.unit() > 0.9 && lvl < maxLevels && counter > 0 && crossCounter < 0 && counter < maxSegments - 2) {
+    if (seed.unit() > 0.9 && lvl < maxLevels && counter > 0 && crossCounter < 0 && counter < maxSegments - 3) {
         const direction = seed.unit() > 0.5 ? 1 : -1;
 
         crossCounter = initCrossCounter;
@@ -154,6 +168,9 @@ function generateSegments({ prevSegment, angle, counter = 0, maxSegments = 50, l
             lvl,
             crossCounter: crossCounter - 1
         });
+    }
+    else {
+        prevSegment.isEnd = true;
     }
 }
 
@@ -331,28 +348,39 @@ let buildings = [];
 
 function createBuildingZone() {
     for (let i = 0; i < segments.length; i++) {
-        const segment = segments[i];
+        const buildLength = Math.floor(seed.unit() * 6) + 2;
+        let counter = i;
+        let build = [];
+        let parallelWall = [];
+        let isBreak = false;
+        let angle = 0;
+        let paddings = [];
 
-        if (segment.cross) continue;
+        for (let j = i; j < i + buildLength; j++) {
+            if (!segments[j] || segments[j].cross || segments[j].isEnd || !segments[j].nextSegment || segments[j].prevSegment && segments[j].prevSegment.cross) {
+                isBreak = true;
+                break;
+            }
 
-        const coords = segment.coords;
-        const paddings = segment.padding;
+            paddings = segments[j].padding;
+            angle = Math.atan2(paddings[1][1] - paddings[0][1], paddings[1][0] - paddings[0][0]) + Math.PI;
 
-        const angle = Math.atan2(coords[1] - coords[3], coords[0] - coords[2]) + Math.PI;
+            build.push([ paddings[0][0], paddings[0][1] ]);
+            build.push([ paddings[1][0], paddings[1][1] ]);
 
-        buildings.push([
-            [ cos(angle) - padding * 2 * sin(angle) + paddings[0][0], sin(angle) + padding * 2 * cos(angle) + paddings[0][1] ],
-            [ cos(angle) - padding * 2 * sin(angle) + paddings[1][0], sin(angle) + padding * 2 * cos(angle) + paddings[1][1] ],
-            [ cos(angle) + padding * -1 * sin(angle) + paddings[1][0], sin(angle) - padding * -1 * cos(angle) + paddings[1][1] ],
-            [ cos(angle) + padding * -1 * sin(angle) + paddings[0][0], sin(angle) - padding * -1 * cos(angle) + paddings[0][1] ]
-        ]);
+            parallelWall.push([ cos(angle) + 50 * sin(angle) + paddings[0][0], sin(angle) - 50 * cos(angle) + paddings[0][1] ]);
 
-        buildings.push([
-            [ cos(angle) - padding * -4 * sin(angle) + paddings[0][0], sin(angle) + padding * -4 * cos(angle) + paddings[0][1] ],
-            [ cos(angle) - padding * -4 * sin(angle) + paddings[1][0], sin(angle) + padding * -4 * cos(angle) + paddings[1][1] ],
-            [ cos(angle) + padding * 3 * sin(angle) + paddings[1][0], sin(angle) - padding * 3 * cos(angle) + paddings[1][1] ],
-            [ cos(angle) + padding * 3 * sin(angle) + paddings[0][0], sin(angle) - padding * 3 * cos(angle) + paddings[0][1] ]
-        ]);
+            counter = j;
+        }
+
+        if (!isBreak) {
+            build.push([ cos(angle) + 50 * sin(angle) + build[build.length - 1][0], sin(angle) - 50 * cos(angle) + build[build.length - 1][1] ]);
+            build.push(...parallelWall.reverse());
+    
+            buildings.push(build);
+        }
+
+        i = counter + 1;
     }
 }
 
@@ -441,7 +469,7 @@ function drawBuildings() {
             build[0][1] - cameraData.y
         );
 
-        for (let j = 1; j < build.length; j++) {
+        for (let j = 0; j < build.length; j++) {
             ctx.lineTo(
                 build[j][0] - cameraData.x,
                 build[j][1] - cameraData.y

@@ -8,6 +8,11 @@ function createCities(planet) {
     const seed = new RNG('' || planet.seed);
     const maxCitiesCount = 4;
 
+    const fields = 6;
+    const qTreeCenterX = canvas.width * fields / 2;
+    const qTreeCenterY = canvas.height * fields / 2;
+    const globalRect = createRect(-qTreeCenterX, -qTreeCenterY, canvas.width * fields, canvas.height * fields);
+
     planet.roads = [];
     planet.buildings = [];
     planet.triggers = [];
@@ -19,207 +24,312 @@ function createCities(planet) {
             seed,
             id: seed.unitString(),
             name: `C-${ seed.unitString() }`,
-            angleOffset: 25,
-            angle: (25 * seed.unit() * Math.PI / 180) - (25 * 2 * seed.unit() * Math.PI / 180),
-            segmentLength: 500,
         }
 
-        const buildings = [];
+        let qtree = new QuadTree(globalRect, 8);
+
         const startX = i * (config.planetWidth / 4) - config.planetWidth / 2.5;
         const startY = seed.unit() * config.planetHeight / 1.5 - config.planetHeight / 3;
-
+        const startAngle = Math.PI * 2 * seed.unit();
         const startSegment = {
-            x1: startX,
-            y1: startY,
-            x2: startX + Math.cos(cityData.angle) * cityData.segmentLength,
-            y2: startY + Math.sin(cityData.angle) * cityData.segmentLength,
-            angle: cityData.angle
-        }
-        
-        const roads = generateRoads(cityData, 0, cityData.angle, startSegment);
-    
-        for (let i = 0; i < roads.length; i++) {
-            const road = roads[i];
-            const building = generateBuildingAreas(road, roads, cityData);
-
-            if (building) {
-                buildings.push(building);
-            }
+            coords: [
+                startX,
+                startY,
+                startX + cos(startAngle) * config.roadLength,
+                startY + sin(startAngle) * config.roadLength
+            ],
+            padding: []
         }
 
-        createTriggers(seed, buildings);
+        playerShip.x = startX;
+        playerShip.y = startY;
+
+        const segments = [];
+
+        createPadding(startSegment, startAngle);
+        segments.push(startSegment);
+
+        generateSegments({
+            prevSegment: startSegment,
+            angle: startAngle,
+            qtree,
+            segments
+        });
+
+        // generate builds
+        // create triggers
 
         planet.cities.push(cityData);
-        planet.roads.push(...roads);
-        planet.buildings.push(...buildings);
+        planet.roads.push(segments);
+        // planet.buildings.push(...buildings);
     }
 }
 
-/**
- * Generate roads for city
- * @param {object} planet 
- * @param {number} lvl 
- * @param {float} angle 
- * @param {object} lastSegment 
- * @param {number} maxSegments 
- * @param {number} currentSegmentsCount 
- */
-function generateRoads(city, lvl = 0, angle, lastSegment, maxSegments = 20, currentSegmentsCount = 0, roads = []) {
-    angle += (city.angleOffset * city.seed.unit() * Math.PI / 180) - (city.angleOffset * city.seed.unit() * Math.PI / 180);
+function generateSegments({ prevSegment, angle, counter = 0, maxSegments = 50, maxLevels = 3, lvl = 0, crossCounter = 6, qtree, segments }) {
+    angle += config.angleOffset * seed.unit() * Math.PI / 180 - config.angleOffset * seed.unit() * Math.PI / 180;
 
-    let newSegment = {
-        x1: lastSegment.x2,
-        y1: lastSegment.y2,
-        x2: lastSegment.x2 + Math.cos(angle) * city.segmentLength,
-        y2: lastSegment.y2 + Math.sin(angle) * city.segmentLength,
-        angle
-    };
-
-    const interData = checkIntersects(newSegment, roads);
-    const tailsData = checkTails(newSegment, roads);
-
-    if (interData) {
-        newSegment.x2 = interData.x;
-        newSegment.y2 = interData.y;
+    let nextSegment = {
+        prevSegment,
+        coords: [
+            prevSegment.coords[2],
+            prevSegment.coords[3],
+            prevSegment.coords[2] + cos(angle) * config.roadLength,
+            prevSegment.coords[3] + sin(angle) * config.roadLength
+        ],
+        padding: []
     }
 
-    if (tailsData) return roads;
+    prevSegment.nextSegment = nextSegment;
 
-    if (currentSegmentsCount > 10 && !interData && city.seed.unit() > 0.7 && lvl < 2) {
-        const direction = city.seed.unit() > 0.5
-            ? 1
-            : -1;
+    qtree.insert(createPoint(prevSegment.coords[2], prevSegment.coords[3], prevSegment));
 
-        const newRoads = generateRoads(city, lvl + 1, angle + 90 * Math.PI / 180 * direction, lastSegment, maxSegments, 0, roads);
+    selectCircle = createCircle(nextSegment.coords[0], nextSegment.coords[1], config.roadLength * 2.1);
 
-        roads.concat(newRoads);
-    }
+    let selectedPoints = qtree.query(selectCircle);
+    let prevSegments = getLastSegments(prevSegment, 4);
 
-    roads.push(newSegment);
+    selectedPoints = selectedPoints.filter(point => {
+        const isException = prevSegments.find(segment => segment.coords[0] === point.x || segment.coords[2] === point.x);
 
-    if (lvl <= 2 && currentSegmentsCount < maxSegments && !interData) {
-        const newRoads = generateRoads(city, lvl, angle, newSegment, maxSegments, currentSegmentsCount + 1, roads);
+        if (!isException) return point;
+    });
 
-        roads.concat(newRoads);
-    }
+    debugPoints = selectedPoints;
 
-    return roads;
-}
+    if (selectedPoints.length > 2) {
+        if (!prevSegment.prevSegment) return;
 
-/**
- * Generate buildings area for segment
- * @param {object} segment 
- * @param {object} city 
- * @param {float} angle 
- */
-function generateBuildingAreas(segment, roads, city) {
-    const res = filterByCoords(segment, roads);
+        let nearestPoint = 0;
+        let minDist = Infinity;
 
-    if (res.length > 3) return;
+        selectedPoints.forEach((point, i) => {
+            const d = Math.sqrt((prevSegment.coords[3] - point.y)**2 + (prevSegment.coords[2] - point.x)**2);
 
-    const angle = Math.atan2(segment.y2 - segment.y1, segment.x2 - segment.x1) + Math.PI;
-    const dir = city.seed.unit() > 0.5 ? 1 : -1;
-    const width = config.roadWidth * 1.5;
+            if (d < minDist) {
+                minDist = d;
+                nearestPoint = i;
+            }
+        });
 
-    let data = [];
+        qtree.remove(createPoint(prevSegment.coords[2], prevSegment.coords[3]));
+        
+        prevSegment.coords[2] = selectedPoints[nearestPoint].x;
+        prevSegment.coords[3] = selectedPoints[nearestPoint].y;
 
-    const l1 = {
-        x1: Math.cos(angle) - (config.roadWidth / 2 * dir) * Math.sin(angle) + segment.x1,
-        y1: Math.sin(angle) + (config.roadWidth / 2 * dir) * Math.cos(angle) + segment.y1,
-        x2: Math.cos(angle) - (config.roadWidth / 2 * dir) * Math.sin(angle) + segment.x2,
-        y2: Math.sin(angle) + (config.roadWidth / 2 * dir) * Math.cos(angle) + segment.y2
-    }
+        const selectCircle = createCircle(prevSegment.coords[2], prevSegment.coords[3], 1);
+        const crossSegment = qtree.query(selectCircle)[0].data;
 
-    const l2 = {
-        x1: l1.x2,
-        y1: l1.y2,
-        x2: Math.cos(angle + Math.PI) * dir + width * Math.sin(angle + Math.PI) * dir + segment.x2,
-        y2: Math.sin(angle + Math.PI) * dir - width * Math.cos(angle + Math.PI) * dir + segment.y2
-    }
-
-    const l3 = {
-        x1: l2.x2,
-        y1: l2.y2,
-        x2: Math.cos(angle + Math.PI) * dir + width * Math.sin(angle + Math.PI) * dir + segment.x1,
-        y2: Math.sin(angle + Math.PI) * dir - width * Math.cos(angle + Math.PI) * dir + segment.y1
-    }
-
-    const l4 = {
-        x1: l3.x2,
-        y1: l3.y2,
-        x2: l1.x1,
-        y2: l1.y1
-    }
-
-    data.push(l1);
-    data.push(l2);
-    data.push(l3);
-    data.push(l4);
-
-    const isIntersects = checkBuildIntersects(roads);
-
-    if (isIntersects) return;
-    
-    return data;
-}
-
-function checkBuildIntersects(data) {
-    for (let i = 0; i < data.length; i++) {
-        const segment = data[i];
-
-        const roadInterData = checkIntersects(segment, data);
-        const roadTailsData = checkTails(segment, data, 0.2);
-
-        if (roadInterData || roadTailsData) return true;
-    }
-
-    for (let i = 0; i < data.length; i++) {
-        const compareData = data[i];
-
-        for (let j = 0; j < data.length; j++) {
-            const segment = data[j];
-
-            const interData = checkIntersects(segment, compareData);
-
-            if (interData) return true;
+        if (crossSegment) {
+            crossSegment.cross = prevSegment;
+            prevSegment.cross = crossSegment;
         }
+
+
+        prevSegment.padding = prevSegment.padding ? prevSegment.padding : [];
+
+        const newAngle = Math.atan2(prevSegment.coords[1] - selectedPoints[nearestPoint].y, prevSegment.coords[0] - selectedPoints[nearestPoint].x) + Math.PI;
+
+        prevSegment.padding = [];
+        createPadding(prevSegment, newAngle); 
+        connectPaddings(prevSegment.prevSegment, prevSegment);
+
+        const mainPaddings = prevSegment.padding;
+        const nextPaddings = selectedPoints[nearestPoint].data.padding;
+        const prevPaddings = selectedPoints[nearestPoint].data.prevSegment
+            ? selectedPoints[nearestPoint].data.prevSegment.padding
+            : selectedPoints[nearestPoint].data.padding;    
+            
+        const interData = cutPaddings(mainPaddings, prevPaddings, nextPaddings);
         
+        mainPaddings[1] = [ interData.firstIntersect.x, interData.firstIntersect.y ];
+        mainPaddings[2] = [ interData.secondInterset.x, interData.secondInterset.y ];
+
+        return;
+    }
+
+
+    qtree.insert(createPoint(nextSegment.coords[2], nextSegment.coords[3], nextSegment));
+    createPadding(nextSegment, angle);
+    connectPaddings(prevSegment, nextSegment);
+
+    nextSegment.prevSegment = prevSegment;
+
+    segments.push(nextSegment);
+
+    if (seed.unit() > 0.9 && lvl < maxLevels && counter > 0 && crossCounter < 0 && counter < maxSegments - 3) {
+        const direction = seed.unit() > 0.5 ? 1 : -1;
+
+        crossCounter = 6;
+
+        prevSegment.cross = nextSegment;
+        nextSegment.cross = prevSegment;
+
+        splitSegment({
+            prevSegment: nextSegment,
+            angle: angle + Math.PI / 2 * direction,
+            counter: 0,
+            maxSegments: maxSegments / 2,
+            lvl: lvl + 1,
+            direction,
+            segments,
+            qtree,
+            crossCounter: 6
+        });
+    }
+
+    if (counter < maxSegments) {
+        generateSegments({
+            prevSegment: nextSegment,
+            angle,
+            counter: counter + 1,
+            maxSegments,
+            lvl,
+            crossCounter: crossCounter - 1,
+            qtree,
+            segments
+        });
+    }
+    else {
+        prevSegment.isEnd = true;
     }
 }
 
-/**
- * check the segment for intersection 
- * @param {object} newSegment 
- * @param {object} city 
- */
-function checkIntersects(newSegment, data) {
-    for (let i = 0; i < data.length; i++) {
-        const segment = data[i];
+function splitSegment(data) {
+    const coords = data.prevSegment.coords;
 
-        if (
-            newSegment === segment ||
-            newSegment.x2 === segment.x1 ||
-            newSegment.x1 === segment.x2
-        ) break;
+    let splitedSegment = {
+        cross: data.prevSegment,
+        coords: [
+            coords[0],
+            coords[1],
+            coords[0] + cos(data.angle) * config.roadLength,
+            coords[1] + sin(data.angle) * config.roadLength
+        ],
+        padding: []
+    }
 
-        const x1 = newSegment.x1;
-        const x2 = newSegment.x2;
-        const x3 = segment.x1;
-        const x4 = segment.x2;
-        
-        const y1 = newSegment.y1;
-        const y2 = newSegment.y2;
-        const y3 = segment.y1;
-        const y4 = segment.y2;
+    createPadding(splitedSegment, data.angle);
 
-        const m12 = (y2 - y1) / (x2 - x1);
-        const m34 = (y4 - y3) / (x4 - x3);
-        const m = m34 / m12;
-        const x = (x1 - y1 / m12 - m * x3 + y3 / m12) / (1 - m);
-        const y = m12 * (x - x1) + y1;
+    const splitedPaddings = splitedSegment.padding;
+    const nextPaddings = data.prevSegment.prevSegment.padding;
+    const prevPaddings = data.prevSegment.padding;
 
-        const point = { x, y };
+    const interData = cutPaddings(splitedPaddings, nextPaddings, prevPaddings, true, data.direction);
 
+    splitedSegment.padding[0] = [ interData.firstIntersect.x, interData.firstIntersect.y ];
+    splitedSegment.padding[3] = [ interData.secondInterset.x, interData.secondInterset.y ];
+
+    data.segments.push(splitedSegment);
+
+    generateSegments({ ...data, prevSegment: splitedSegment });
+}
+
+function cutPaddings(mainPaddings, nextPaddings, prevPaddings, isCutByDirection, direction) {
+    const bottomLine = [ mainPaddings[0][0], mainPaddings[0][1], mainPaddings[1][0], mainPaddings[1][1] ];
+    const topLine = [ mainPaddings[2][0], mainPaddings[2][1], mainPaddings[3][0], mainPaddings[3][1] ];
+    
+    let firstIntersect = null;
+    let secondInterset = null;
+
+    if (isCutByDirection) {
+        const rightLine = direction === 1
+            ? [ nextPaddings[0][0], nextPaddings[0][1], nextPaddings[1][0], nextPaddings[1][1] ]
+            : [ nextPaddings[2][0], nextPaddings[2][1], nextPaddings[3][0], nextPaddings[3][1] ];
+            
+        const leftLine = direction === 1
+            ? [ prevPaddings[0][0], prevPaddings[0][1], prevPaddings[1][0], prevPaddings[1][1] ]
+            : [ prevPaddings[2][0], prevPaddings[2][1], prevPaddings[3][0], prevPaddings[3][1] ];
+
+        firstIntersect = checkIntersects(bottomLine, rightLine);
+        secondInterset = checkIntersects(topLine, leftLine);
+    }
+    else {
+        for (let i = 0; i < 3; i += 2) {
+            const l1 = [ nextPaddings[i][0], nextPaddings[i][1], nextPaddings[i + 1][0], nextPaddings[i + 1][1] ];
+            const l2 = [ prevPaddings[i][0], prevPaddings[i][1], prevPaddings[i + 1][0], prevPaddings[i + 1][1] ];
+    
+            const bottomInterData = checkIntersects(bottomLine, l2);
+            const topInterData = checkIntersects(topLine, l1);
+    
+            if (i === 0) {
+                firstIntersect = bottomInterData;
+                secondInterset = topInterData;
+            }
+            else {
+                const x1 = mainPaddings[0][0];
+                const y1 = mainPaddings[0][1];
+    
+                const d1 = Math.sqrt((x1 - firstIntersect.x)**2 + (y1 - firstIntersect.y)**2);
+                const d2 = Math.sqrt((x1 - bottomInterData.x)**2 + (y1 - bottomInterData.y)**2);
+
+                if (d2 < d1) {
+                    firstIntersect = bottomInterData;
+                    secondInterset = topInterData;
+                }
+            }
+        }
+    }
+
+    return {
+        firstIntersect,
+        secondInterset
+    }
+}
+
+function createPadding(segment, angle) {
+    if (segment.padding.length) return;
+    
+    const coords = segment.coords;
+
+    segment.padding = [
+        [ cos(angle) - config.roadPadding * sin(angle) + coords[0], sin(angle) + config.roadPadding * cos(angle) + coords[1] ],
+        [ cos(angle) - config.roadPadding * sin(angle) + coords[2], sin(angle) + config.roadPadding * cos(angle) + coords[3] ],
+        [ cos(angle) + config.roadPadding * sin(angle) + coords[2], sin(angle) - config.roadPadding * cos(angle) + coords[3] ],
+        [ cos(angle) + config.roadPadding * sin(angle) + coords[0], sin(angle) - config.roadPadding * cos(angle) + coords[1] ]
+    ];
+}
+
+function connectPaddings(prevSegment, nextSegment) {
+    const prevPaddings = prevSegment.padding ? prevSegment.padding : prevSegment;
+    const nextPaddings = nextSegment.padding ? nextSegment.padding : nextSegment;
+
+    for (let i = 0; i < 3; i += 2) {
+        const prevLine = [ prevPaddings[i][0], prevPaddings[i][1], prevPaddings[i + 1][0], prevPaddings[i + 1][1] ];
+        const nextLine = [ nextPaddings[i][0], nextPaddings[i][1], nextPaddings[i + 1][0], nextPaddings[i + 1][1] ];
+
+        const interData = checkIntersects(prevLine, nextLine);
+
+        if (i === 0) {
+            prevPaddings[i + 1] = [ interData.x, interData.y ];
+            nextPaddings[i + 0] = [ interData.x, interData.y ];
+        }
+        else {
+            prevPaddings[i + 0] = [ interData.x, interData.y ];
+            nextPaddings[i + 1] = [ interData.x, interData.y ];
+        }
+    }
+}
+
+function checkIntersects(l1, l2, isLineIntersects) {
+    const x1 = l1[0];
+    const x2 = l1[2];
+    const x3 = l2[0];
+    const x4 = l2[2];
+    
+    const y1 = l1[1];
+    const y2 = l1[3];
+    const y3 = l2[1];
+    const y4 = l2[3];
+
+    const m12 = (y2 - y1) / (x2 - x1);
+    const m34 = (y4 - y3) / (x4 - x3);
+    const m = m34 / m12;
+    const x = (x1 - y1 / m12 - m * x3 + y3 / m12) / (1 - m);
+    const y = m12 * (x - x1) + y1;
+
+    const point = { x, y };
+
+    if (isLineIntersects) {
         if (
             point.x >= Math.min(x1, x2) &&
             point.x <= Math.max(x1, x2) &&
@@ -228,71 +338,32 @@ function checkIntersects(newSegment, data) {
             point.y >= Math.min(y1, y2) &&
             point.y <= Math.max(y1, y2) &&
             point.y >= Math.min(y1, y2) &&
-            point.y <= Math.max(y1, y2)                    
+            point.y <= Math.max(y1, y2)
         ) {
-            const d1 = Math.sqrt(Math.pow(x2 - x3, 2) + Math.pow(y2 - y1, 2));
-            const d2 = Math.sqrt(Math.pow(x2 - x4, 2) + Math.pow(y2 - y2, 2));
-    
-            if (d1 > d2) {
-                return {
-                    x: x4,
-                    y: y2,
-                    point,
-                    segment
-                }
-            }
-            else {
-                return {
-                    x: x3,
-                    y: y1,
-                    point,
-                    segment
-                }
-            }
+            return point;
         }
+    }
+    else {
+        return point;
     }
 }
 
-function checkTails(newSegment, data, radius = 0.7) {
-    for (let i = 0; i < data.length; i++) {
-        let segment = data[i];
+function getLastSegments(segment, count, segments = [], isCrossed) {
+    for (let i = 0; i < count; i++) {
+        segments.push(segment);
 
-        if (newSegment === segment) break;
-
-        const segmentLength = Math.sqrt((segment.x2 - segment.x1)**2 + (segment.y2 - segment.y1)**2);
-        const d1 = Math.sqrt((newSegment.x2 - segment.x1)**2 + (newSegment.y2 - segment.y1)**2);
-        const d2 = Math.sqrt((newSegment.x2 - segment.x2)**2 + (newSegment.y2 - segment.y2)**2);
-
-        if (d1 < segmentLength * radius) {
-            return {
-                x: segment.x1,
-                y: segment.y1,
-                segment
-            };
+        if (segment.cross && !isCrossed) {
+            getLastSegments(segment.cross, count, segments, true);
         }
-        else if (d2 < segmentLength * radius) {
-            return {
-                x: segment.x2,
-                y: segment.y2,
-                segment
-            };
+
+        if (segment.prevSegment) {
+            segment = segment.prevSegment;
         }
     }
+
+    return segments;
 }
 
-function filterByCoords(segment, data) {
-    return data.filter(item =>
-        segment.x1 === item.x1 ||
-        segment.x1 === item.x2 ||
-        segment.x2 === item.x1 ||
-        segment.x2 === item.x2 ||
-        
-        segment.y1 === item.y1 ||
-        segment.y1 === item.y2 ||
-        segment.y2 === item.y1 ||
-        segment.y2 === item.y2
-    );
-}
 
 /**
  * Draw city roads
@@ -300,86 +371,68 @@ function filterByCoords(segment, data) {
 function drawRoads() {
     if (envData.current.name[0] !== 'P') return;
 
-    ctx.lineWidth = config.roadWidth;
-    ctx.strokeStyle = lightStonePattern;
-    ctx.fillStyle = lightStonePattern;
-    ctx.lineCap = 'round';
-
     if (isDebug) {
-        ctx.strokeStyle = 'rgba(255, 255, 255, .2)';
-        ctx.fillStyle = 'rgba(255, 255, 255, .2)';
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = '#fff';
+        ctx.fillStyle = 'rgba(255, 255, 255, .1)';
     }
+    else {
+        ctx.lineWidth = config.roadWidth;
+        ctx.strokeStyle = lightStonePattern;
+        ctx.fillStyle = lightStonePattern;
+        ctx.lineCap = 'round';
+    }
+    
+    for (let j = 0; j < envData.current.roads.length; j++) {
+        const roads = envData.current.roads[j];
+        
+        for (let i = 0; i < roads.length; i++) {
+            const paddings = roads[i].padding;
 
-    envData.current.roads.forEach(road => {
-        ctx.save();
+            if (!paddings[0]) break;
+
+            if (isDebug) {
+                const coords = roads[i].coords;
+
+                ctx.beginPath();
+                ctx.moveTo(
+                    coords[0] - camera.x + camera.width / 2,
+                    coords[1] - camera.y + camera.height / 2
+                );
+                ctx.lineTo(
+                    coords[2] - camera.x + camera.width / 2,
+                    coords[3] - camera.y + camera.height / 2
+                );
+                ctx.stroke();
+            }
+            
+            ctx.save();
             ctx.translate(
-                road.x1 - camera.x + camera.width / 2,
-                road.y1 - camera.y + camera.height / 2
+                paddings[0][0] - camera.x + camera.width / 2,
+                paddings[0][1] - camera.y + camera.height / 2
             );
 
             ctx.beginPath();
-
             ctx.moveTo(0, 0);
-            ctx.lineTo(
-                road.x2 - road.x1,
-                road.y2 - road.y1
-            );
+            
+            for (let k = 1; k < paddings.length; k++) {
+                ctx.lineTo(
+                    paddings[k][0] - paddings[0][0],
+                    paddings[k][1] - paddings[0][1]
+                );
+            }
 
+            ctx.closePath();
+            ctx.fill();
             ctx.stroke();
-        ctx.restore();
-    });
+            ctx.restore();
+        }
+    }
 }
 
 function drawBuildings() {
     if (envData.current.name[0] !== 'P') return;
 
-    setShadowsParam(0, 0, 10, '#000');
-    ctx.lineWidth = 10;
-    ctx.strokeStyle = stonePattern;
-    ctx.fillStyle = lightStonePattern;
-
-    if (isDebug) {
-        ctx.strokeStyle = 'rgba(255, 255, 255, .2)';
-        ctx.fillStyle = 'rgba(255, 255, 255, .2)';
-    }
-
-    envData.current.buildings.forEach(build => {
-        ctx.save();
-            ctx.translate(
-                build[0].x1 - camera.x + camera.width / 2,
-                build[0].y1 - camera.y + camera.height / 2
-            );
-
-            ctx.beginPath();
-
-            ctx.moveTo(0, 0);
-            ctx.lineTo(
-                build[0].x2 - build[0].x1,
-                build[0].y2 - build[0].y1
-            );
-            ctx.lineTo(
-                build[1].x2 - build[0].x1,
-                build[1].y2 - build[0].y1
-            );
-            ctx.lineTo(
-                build[1].x2 - build[0].x1,
-                build[1].y2 - build[0].y1
-            );
-            ctx.lineTo(
-                build[2].x2 - build[0].x1,
-                build[2].y2 - build[0].y1
-            );
-            ctx.lineTo(
-                build[2].x2 - build[0].x1,
-                build[2].y2 - build[0].y1
-            );
-
-            ctx.closePath();
-            ctx.fill();
-            ctx.stroke();
-
-        ctx.restore();
-    });
 }
 
 
