@@ -1,5 +1,9 @@
 let isDebug = false;
 
+const triggerTypes = {
+    shop: 0
+}
+
 /**
  * Create cities for planet
  * @param {object} planet 
@@ -18,6 +22,7 @@ function createCities(planet) {
     planet.roads = [];
     planet.buildings = [];
     planet.triggers = [];
+    planet.qtree = new QuadTree(globalRect, 8);
 
     for (let i = 0; i < maxCitiesCount; i++) {
         if (seed.unit() < 0.6) continue;
@@ -26,8 +31,6 @@ function createCities(planet) {
             id: seed.unitString(),
             name: `C-${ seed.unitString() }`,
         }
-
-        let qtree = new QuadTree(globalRect, 8);
 
         const startX = i * (config.planetWidth / 4) - config.planetWidth / 2.5;
         const startY = seed.unit() * config.planetHeight / 1.5 - config.planetHeight / 3;
@@ -42,9 +45,6 @@ function createCities(planet) {
             padding: []
         }
 
-        playerShip.x = startX;
-        playerShip.y = startY;
-
         const segments = [];
 
         createPadding(startSegment, startAngle);
@@ -53,20 +53,21 @@ function createCities(planet) {
         generateSegments({
             prevSegment: startSegment,
             angle: startAngle,
-            qtree,
+            qtree: planet.qtree,
             segments,
             seed: new RNG(seed.unitString())
         });
 
         const buildings = [];
-        
         createBuildingZone(segments, buildings);
 
-        // create triggers
+        const shops = [];
+        createTriggers(buildings, seed, shops, triggerTypes.shop);
 
         planet.cities.push(cityData);
         planet.roads.push(segments);
         planet.buildings.push(buildings);
+        planet.triggers.push(...shops);
     }
 }
 
@@ -482,8 +483,8 @@ function drawBuildings() {
 
     ctx.fillStyle = stonePattern;
     ctx.strokeStyle = lightStonePattern;
-    ctx.lineWidth = 30;
-    setShadowsParam(0, 0, 20, '#000');
+    ctx.lineWidth = 50;
+    setShadowsParam(0, 0, 30, '#000');
 
     for (let i = 0; i < envData.current.buildings.length; i++) {
         const builds = envData.current.buildings[i];
@@ -515,6 +516,9 @@ function drawBuildings() {
     }
 }
 
+function drawTriggers() {
+    
+}
 
 
 
@@ -532,28 +536,31 @@ function drawBuildings() {
 
 
 
-function createTriggers(seed, buildings) {
+
+function createTriggers(buildings, seed, triggers, type) {
     if (!buildings.length) return;
 
-    const id = Math.floor((buildings.length - 1) * seed.unit());
-    const shop = buildings[id];
+    if (type === triggerTypes.shop) {
+        const buildId = Math.floor((buildings.length - 1) * seed.unit());
+        
+        triggers.push({
+            zone: buildings[buildId],
+            id: seed.unitString(),
+            isOpen: false,
+            items: [],
+            action() {
+                this.isOpen = !this.isOpen;
+                inventoryData.isOpen = this.isOpen;
+                inventoryData.inventoryOffsetY = inventoryData.height / 2
 
-    currentPlanet.triggers.push({
-        zone: [...shop],
-        id: seed.unitString(),
-        isOpen: false,
-        items: [],
-        action() {
-            this.isOpen = !this.isOpen;
-            inventoryData.isOpen = this.isOpen;
-            inventoryData.inventoryOffsetY = inventoryData.height / 2
-
-            if (!this.items.length) {
-                createShopStuff(this);
+                if (!this.items.length) {
+                    createShopStuff(this);
+                }
             }
-        }
-    });
+        });
+    }
 }
+
 
 function checkTriggers() {
     if (!envData.current.triggers) return;
@@ -561,11 +568,11 @@ function checkTriggers() {
     playerShip.currentTrigger = envData.current.triggers.find(trigger => {
         let inside = false;
 
-        for (let i = 0; i < trigger.zone.length; j = i++) {
-            const x1 = trigger.zone[i].x1;
-            const y1 = trigger.zone[i].y1;
-            const x2 = trigger.zone[i].x2;
-            const y2 = trigger.zone[i].y2;
+        for (let i = 1; i < trigger.zone.length; j = i++) {
+            const x1 = trigger.zone[i - 1][0];
+            const y1 = trigger.zone[i - 1][1];
+            const x2 = trigger.zone[i][0];
+            const y2 = trigger.zone[i][1];
 
             const intersect = ((y1 > playerShip.y) != (y2 > playerShip.y)) && (playerShip.x < (x2 - x1) * (playerShip.y - y1) / (y2 - y1) + x1);
 
