@@ -33,7 +33,7 @@ let cameraData = {
 }
 let globalRect = createRect(-qTreeCenterX, -qTreeCenterY, canvas.width * fields, canvas.height * fields);
 let qtree = new QuadTree(globalRect, 4);
-let seed = new RNG('' || seedValue);
+let seed = new RNG('upjn37l534n' || seedValue);
 let segments = [];
 let isDebug = true;
 let debugRects = [];

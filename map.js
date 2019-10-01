@@ -37,6 +37,7 @@ function drawMap() {
     if (!mapData.isOpen) return;
 
     ctx.fillStyle = 'rgba(0, 0, 0, .8)';
+    ctx.lineWidth = 0;
     
     ctx.fillRect(
         canvas.width / 2 - mapData.width / 2,

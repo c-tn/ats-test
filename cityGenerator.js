@@ -8,10 +8,12 @@ function createCities(planet) {
     const seed = new RNG('' || planet.seed);
     const maxCitiesCount = 4;
 
-    const fields = 6;
-    const qTreeCenterX = canvas.width * fields / 2;
-    const qTreeCenterY = canvas.height * fields / 2;
-    const globalRect = createRect(-qTreeCenterX, -qTreeCenterY, canvas.width * fields, canvas.height * fields);
+    const globalRect = createRect(
+        -config.planetWidth / 2,
+        -config.planetHeight / 2,
+        config.planetWidth,
+        config.planetHeight
+    );
 
     planet.roads = [];
     planet.buildings = [];
@@ -21,7 +23,6 @@ function createCities(planet) {
         if (seed.unit() < 0.6) continue;
 
         const cityData = {
-            seed,
             id: seed.unitString(),
             name: `C-${ seed.unitString() }`,
         }
@@ -53,19 +54,23 @@ function createCities(planet) {
             prevSegment: startSegment,
             angle: startAngle,
             qtree,
-            segments
+            segments,
+            seed: new RNG(seed.unitString())
         });
 
-        // generate builds
+        const buildings = [];
+        
+        createBuildingZone(segments, buildings);
+
         // create triggers
 
         planet.cities.push(cityData);
         planet.roads.push(segments);
-        // planet.buildings.push(...buildings);
+        planet.buildings.push(buildings);
     }
 }
 
-function generateSegments({ prevSegment, angle, counter = 0, maxSegments = 50, maxLevels = 3, lvl = 0, crossCounter = 6, qtree, segments }) {
+function generateSegments({ prevSegment, angle, counter = 0, maxSegments = 50, maxLevels = 3, lvl = 0, crossCounter = 6, qtree, segments, seed }) {
     angle += config.angleOffset * seed.unit() * Math.PI / 180 - config.angleOffset * seed.unit() * Math.PI / 180;
 
     let nextSegment = {
@@ -83,7 +88,7 @@ function generateSegments({ prevSegment, angle, counter = 0, maxSegments = 50, m
 
     qtree.insert(createPoint(prevSegment.coords[2], prevSegment.coords[3], prevSegment));
 
-    selectCircle = createCircle(nextSegment.coords[0], nextSegment.coords[1], config.roadLength * 2.1);
+    const selectCircle = createCircle(nextSegment.coords[0], nextSegment.coords[1], config.roadLength * 2.1);
 
     let selectedPoints = qtree.query(selectCircle);
     let prevSegments = getLastSegments(prevSegment, 4);
@@ -170,10 +175,11 @@ function generateSegments({ prevSegment, angle, counter = 0, maxSegments = 50, m
             counter: 0,
             maxSegments: maxSegments / 2,
             lvl: lvl + 1,
+            crossCounter: 6,
             direction,
             segments,
             qtree,
-            crossCounter: 6
+            seed
         });
     }
 
@@ -186,7 +192,8 @@ function generateSegments({ prevSegment, angle, counter = 0, maxSegments = 50, m
             lvl,
             crossCounter: crossCounter - 1,
             qtree,
-            segments
+            segments,
+            seed
         });
     }
     else {
@@ -364,6 +371,45 @@ function getLastSegments(segment, count, segments = [], isCrossed) {
     return segments;
 }
 
+function createBuildingZone(segments, buildings) {
+    for (let i = 0; i < segments.length; i++) {
+        const buildLength = Math.floor(seed.unit() * 6) + 2;
+        const buildWidth = 300;
+        let counter = i;
+        let build = [];
+        let parallelWall = [];
+        let isBreak = false;
+        let angle = 0;
+        let paddings = [];
+
+        for (let j = i; j < i + buildLength; j++) {
+            if (!segments[j] || segments[j].cross || segments[j].isEnd || !segments[j].nextSegment || segments[j].prevSegment && segments[j].prevSegment.cross) {
+                isBreak = true;
+                break;
+            }
+
+            paddings = segments[j].padding;
+            angle = Math.atan2(paddings[1][1] - paddings[0][1], paddings[1][0] - paddings[0][0]) + Math.PI;
+
+            build.push([ paddings[0][0], paddings[0][1] ]);
+            build.push([ paddings[1][0], paddings[1][1] ]);
+
+            parallelWall.push([ cos(angle) + buildWidth * sin(angle) + paddings[0][0], sin(angle) - buildWidth * cos(angle) + paddings[0][1] ]);
+
+            counter = j;
+        }
+
+        if (!isBreak) {
+            build.push([ cos(angle) + buildWidth * sin(angle) + build[build.length - 1][0], sin(angle) - buildWidth * cos(angle) + build[build.length - 1][1] ]);
+            build.push(...parallelWall.reverse());
+    
+            buildings.push(build);
+        }
+
+        i = counter + 1;
+    }
+}
+
 
 /**
  * Draw city roads
@@ -381,6 +427,7 @@ function drawRoads() {
         ctx.strokeStyle = lightStonePattern;
         ctx.fillStyle = lightStonePattern;
         ctx.lineCap = 'round';
+        ctx.lineWidth = 1;
     }
     
     for (let j = 0; j < envData.current.roads.length; j++) {
@@ -433,6 +480,39 @@ function drawRoads() {
 function drawBuildings() {
     if (envData.current.name[0] !== 'P') return;
 
+    ctx.fillStyle = stonePattern;
+    ctx.strokeStyle = lightStonePattern;
+    ctx.lineWidth = 30;
+    setShadowsParam(0, 0, 20, '#000');
+
+    for (let i = 0; i < envData.current.buildings.length; i++) {
+        const builds = envData.current.buildings[i];
+
+        for (let j = 0; j < builds.length; j++) {
+            const build = builds[j];
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.translate(
+                build[0][0] - camera.x + camera.width / 2,
+                build[0][1] - camera.y + camera.height / 2
+            );
+    
+            for (let k = 0; k < build.length; k++) {
+                ctx.lineTo(
+                    build[k][0] - build[0][0],
+                    build[k][1] - build[0][1]
+                );
+            }
+    
+            ctx.closePath();
+            setShadowsParam();
+            ctx.stroke();
+            setShadowsParam(0, 0, 20, '#000');
+            ctx.fill();
+            ctx.restore();
+        }
+    }
 }
 
 
