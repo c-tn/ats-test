@@ -621,7 +621,9 @@ const keys = {
     s: 83,
     d: 68,
     m: 77,
-    space: 32
+    space: 32,
+    mouseleft: 1,
+    mouseright: 3
 }
 
 function useTrigger() {

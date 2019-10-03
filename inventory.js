@@ -40,82 +40,49 @@ canvas.addEventListener('mousemove', ({ offsetX, offsetY }) => {
 });
 
 canvas.addEventListener('mousedown', (e) => {
-    if (!inventoryData.isOpen || e.which !== 1) return;
+    if (!inventoryData.isOpen || e.which === keys.mouseright) return;
 
     if (inventoryData.hoveredCell) {
         inventoryData.draggedCell = inventoryData.hoveredCell;
     }
 });
 
-canvas.addEventListener('mouseup', ({ offsetX, offsetY }) => {
-    if (!inventoryData.isOpen || !inventoryData.draggedCell) return;
+canvas.addEventListener('mouseup', ({ offsetX, offsetY, which }) => {
+    if (!inventoryData.isOpen) return;
 
-    const { x, y } = convertMouseToGameCoords({ x: offsetX, y: offsetY });
-    
-    let hoveredCell = getCellByMouseCoords({ x, y });
-    let draggedCell = inventoryData.draggedCell;
+    if (which === keys.mouseleft && inventoryData.draggedCell) {
+        const { x, y } = convertMouseToGameCoords({ x: offsetX, y: offsetY });
+        
+        let hoveredCell = getCellByMouseCoords({ x, y });
+        let draggedCell = inventoryData.draggedCell;
 
-    let hoveredItem = null;
-    let draggedItem = Object.assign({}, inventoryData.draggedCell.item);
+        let hoveredItem = null;
+        let draggedItem = Object.assign({}, inventoryData.draggedCell.item);
 
-    if (hoveredCell && hoveredCell.item) {
-        hoveredItem = Object.assign({}, hoveredCell.item);
-    }
-    
-    inventoryData.mouseX = -inventoryData.cellSize;
-    inventoryData.mouseY = -inventoryData.cellSize;
-
-    inventoryData.draggedCell = null;
-
-    if (!hoveredCell) return;
-
-    // From inv to shop
-    if (draggedCell.type !== slotTypes.shop && hoveredCell.type === slotTypes.shop) {
-        let findedCell = playerShip.currentTrigger.items.find(cell =>
-            cell.item && cell.item.name === draggedItem.name &&
-            cell.item.type === itemTypes.another
-        );
-
-        if (findedCell) {
-            findedCell.item.count += draggedItem.count;
-            draggedCell.item = null;
-            playerShip.money += draggedItem.count * draggedItem.price;
+        if (hoveredCell && hoveredCell.item) {
+            hoveredItem = Object.assign({}, hoveredCell.item);
         }
-        else {
-            if (!hoveredCell.item) {
-                findedCell = hoveredCell;
-            }
-            else {
-                findedCell = playerShip.currentTrigger.items.find(cell => !cell.item);
-            }
+        
+        inventoryData.mouseX = -inventoryData.cellSize;
+        inventoryData.mouseY = -inventoryData.cellSize;
 
-            findedCell.item = draggedItem;
-            draggedCell.item = null;
-            playerShip.money += draggedItem.price * (draggedItem.count || 1);
-        }
-    }
-    // From shop to inv
-    else if (draggedCell.type === slotTypes.shop && hoveredCell.type !== slotTypes.shop) {
-        // Weapon
-        if (!hoveredCell.item && playerShip.money > draggedItem.price && draggedItem.type === itemTypes.weapon) {
-            hoveredCell.item = draggedItem;
-            draggedCell.item = null;
-            playerShip.money -= draggedItem.price;
-        }
-        // Another
-        else if (draggedItem.type === itemTypes.another && hoveredCell.type !== slotTypes.weapons) {
-            let findedCell = playerShip.inventory.find(cell => 
-                cell.item && cell.item.name === draggedItem.name
+        inventoryData.draggedCell = null;
+
+        if (!hoveredCell) return;
+
+        // From inv to shop
+        if (draggedCell.type !== slotTypes.shop && hoveredCell.type === slotTypes.shop) {
+            let findedCell = playerShip.currentTrigger.items.find(cell =>
+                cell.item && cell.item.name === draggedItem.name &&
+                cell.item.type === itemTypes.another
             );
 
-            const totalPrice = draggedItem.price * (draggedItem.count || 1);
-
-            if (findedCell && playerShip.money > totalPrice) {
+            if (findedCell) {
                 findedCell.item.count += draggedItem.count;
                 draggedCell.item = null;
-                playerShip.money -= totalPrice;
+                playerShip.money += draggedItem.count * draggedItem.price;
             }
-            else if (playerShip.money > totalPrice){
+            else {
                 if (!hoveredCell.item) {
                     findedCell = hoveredCell;
                 }
@@ -125,25 +92,141 @@ canvas.addEventListener('mouseup', ({ offsetX, offsetY }) => {
 
                 findedCell.item = draggedItem;
                 draggedCell.item = null;
-                playerShip.money -= totalPrice;
+                playerShip.money += draggedItem.price * (draggedItem.count || 1);
+            }
+        }
+        // From shop to inv
+        else if (draggedCell.type === slotTypes.shop && hoveredCell.type !== slotTypes.shop) {
+            // Weapon
+            if (!hoveredCell.item && playerShip.money > draggedItem.price && draggedItem.type === itemTypes.weapon) {
+                hoveredCell.item = draggedItem;
+                draggedCell.item = null;
+                playerShip.money -= draggedItem.price;
+            }
+            // Another
+            else if (draggedItem.type === itemTypes.another && hoveredCell.type !== slotTypes.weapons) {
+                let findedCell = playerShip.inventory.find(cell => 
+                    cell.item && cell.item.name === draggedItem.name
+                );
+
+                const totalPrice = draggedItem.price * (draggedItem.count || 1);
+
+                if (findedCell && playerShip.money > totalPrice) {
+                    findedCell.item.count += draggedItem.count;
+                    draggedCell.item = null;
+                    playerShip.money -= totalPrice;
+                }
+                else if (playerShip.money > totalPrice){
+                    if (!hoveredCell.item) {
+                        findedCell = hoveredCell;
+                    }
+                    else {
+                        findedCell = playerShip.currentTrigger.items.find(cell => !cell.item);
+                    }
+
+                    findedCell.item = draggedItem;
+                    draggedCell.item = null;
+                    playerShip.money -= totalPrice;
+                }
+            }
+        }
+        // From inv to inv
+        else if (hoveredCell.type !== slotTypes.shop) {
+            // Weapon to another
+            if (!hoveredCell.item && hoveredCell.type === slotTypes.inventory) {
+                hoveredCell.item = draggedItem;
+                draggedCell.item = null;
+            }
+            // Another to weapon
+            else if (!hoveredCell.item && hoveredCell.type === slotTypes.weapons && draggedItem.type === itemTypes.weapon) {
+                hoveredCell.item = draggedItem;
+                draggedCell.item = null;
+            }
+            // Swap weapons
+            else if (draggedItem.type === itemTypes.weapon && hoveredItem.type === itemTypes.weapon) {
+                [ hoveredCell.item, draggedCell.item ] = [ draggedCell.item, hoveredCell.item ];
             }
         }
     }
-    // From inv to inv
-    else {
-        // Weapon to another
-        if (!hoveredCell.item && hoveredCell.type === slotTypes.inventory) {
-            hoveredCell.item = draggedItem;
-            draggedCell.item = null;
+    // Right click sell\buy
+    else if (!inventoryData.draggedCell && which === keys.mouseright) {
+        const { x, y } = convertMouseToGameCoords({ x: offsetX, y: offsetY });
+
+        let hoveredCell = getCellByMouseCoords({ x, y });
+        let hoveredItem = null;
+
+        if (hoveredCell && hoveredCell.item) {
+            hoveredItem = Object.assign({}, hoveredCell.item);
         }
-        // Another to weapon
-        else if (!hoveredCell.item && hoveredCell.type === slotTypes.weapons && draggedItem.type === itemTypes.weapon) {
-            hoveredCell.item = draggedItem;
-            draggedCell.item = null;
+
+        if (!hoveredItem) return;
+
+        // Buy another items
+        if (hoveredCell.type === slotTypes.shop && playerShip.money > hoveredItem.price && hoveredItem.type === itemTypes.another) {
+            let findedCell = playerShip.inventory.find(cell => cell.item && cell.item.name === hoveredItem.name);
+
+            if (findedCell) {
+                findedCell.item.count += 1;
+                hoveredCell.item.count -= 1;
+                playerShip.money -= hoveredItem.price;
+
+                if (hoveredCell.item.count <= 0) {
+                    hoveredCell.item = null;
+                    inventoryData.hoveredCell = null;
+                }
+            }
+            else {
+                findedCell = playerShip.inventory.find(cell => !cell.item && cell.type === slotTypes.inventory);
+
+                hoveredItem.count = 1;
+                findedCell.item = hoveredItem;
+                hoveredCell.item.count -= 1;
+                playerShip.money -= hoveredItem.price;
+            }
         }
-        // Swap weapons
-        else if (draggedItem.type === itemTypes.weapon && hoveredItem.type === itemTypes.weapon) {
-            [ hoveredCell.item, draggedCell.item ] = [ draggedCell.item, hoveredCell.item ];
+        // Buy weapons
+        else if (hoveredCell.type === slotTypes.shop && playerShip.money > hoveredItem.price && hoveredItem.type === itemTypes.weapon) {
+            let findedCell = playerShip.inventory.find(cell => !cell.item && cell.type === slotTypes.inventory);
+
+            if (findedCell) {
+                findedCell.item = hoveredItem;
+                hoveredCell.item = null;
+                playerShip.money -= hoveredItem.price;
+                inventoryData.hoveredCell = null;
+            }
+        }
+        // Sell another items
+        else if (hoveredCell.type === slotTypes.inventory && hoveredItem.type === itemTypes.another) {
+            let findedCell = playerShip.currentTrigger.items.find(cell => cell.item && cell.item.name === hoveredItem.name);
+
+            if (findedCell) {
+                findedCell.item.count += 1;
+                hoveredCell.item.count -= 1;
+                playerShip.money += hoveredItem.price;
+
+                if (hoveredCell.item.count <= 0) {
+                    hoveredCell.item = null;
+                    inventoryData.hoveredCell = null;
+                }
+            }
+            else {
+                findedCell = playerShip.currentTrigger.items.find(cell => !cell.item && cell.type === slotTypes.shop);
+
+                hoveredItem.count = 1;
+                findedCell.item = hoveredItem;
+                hoveredCell.item.count -= 1;
+                playerShip.money -= hoveredItem.price;
+            }
+        }
+        else if (hoveredCell.type !== slotTypes.shop && hoveredItem.type === itemTypes.weapon) {
+            let findedCell = playerShip.currentTrigger.items.find(cell => !cell.item && cell.type === slotTypes.shop);
+
+            if (findedCell) {
+                findedCell.item = hoveredItem;
+                hoveredCell.item = null;
+                playerShip.money += hoveredItem.price;
+                inventoryData.hoveredCell = null;
+            }
         }
     }
 });
