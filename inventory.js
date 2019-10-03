@@ -9,8 +9,7 @@ let inventoryData = {
     hoveredCell: null,
     draggedCell: null,
     inventoryOffsetX: 0,
-    inventoryOffsetY: 0,
-    cells: []
+    inventoryOffsetY: 0
 }
 
 function convertMouseToGameCoords({ x, y }) {
@@ -40,8 +39,8 @@ canvas.addEventListener('mousemove', ({ offsetX, offsetY }) => {
     }
 });
 
-canvas.addEventListener('mousedown', () => {
-    if (!inventoryData.isOpen) return;
+canvas.addEventListener('mousedown', (e) => {
+    if (!inventoryData.isOpen || e.which !== 1) return;
 
     if (inventoryData.hoveredCell) {
         inventoryData.draggedCell = inventoryData.hoveredCell;
@@ -62,40 +61,91 @@ canvas.addEventListener('mouseup', ({ offsetX, offsetY }) => {
     if (hoveredCell && hoveredCell.item) {
         hoveredItem = Object.assign({}, hoveredCell.item);
     }
-
-    if (hoveredCell) {
-        let canSwap = false;
-
-        if (hoveredCell.type === slotTypes.weapons && draggedItem.type === itemTypes.weapon) {
-            canSwap = true;
-        }
-        if (!hoveredItem && (hoveredCell.type === slotTypes.inventory || hoveredCell.type === slotTypes.shop)) {
-            canSwap = true;
-        }
-
-        if (hoveredCell.type === slotTypes.shop && draggedCell.type !== slotTypes.shop) {
-            playerShip.money += draggedItem.price || 0;
-        }
-
-        if (hoveredCell.type !== slotTypes.shop && draggedCell.type === slotTypes.shop) {
-            if (playerShip.money >= draggedItem.price) {
-                playerShip.money -= draggedItem.price || 0;
-                canSwap = true;
-            }
-            else {
-                canSwap = false;
-            }
-        }
-
-        if (canSwap) {
-            [ hoveredCell.item, draggedCell.item ] = [ draggedCell.item, hoveredCell.item ];
-        }
-    }
     
     inventoryData.mouseX = -inventoryData.cellSize;
     inventoryData.mouseY = -inventoryData.cellSize;
 
     inventoryData.draggedCell = null;
+
+    if (!hoveredCell) return;
+
+    // From inv to shop
+    if (draggedCell.type !== slotTypes.shop && hoveredCell.type === slotTypes.shop) {
+        let findedCell = playerShip.currentTrigger.items.find(cell =>
+            cell.item && cell.item.name === draggedItem.name &&
+            cell.item.type === itemTypes.another
+        );
+
+        if (findedCell) {
+            findedCell.item.count += draggedItem.count;
+            draggedCell.item = null;
+            playerShip.money += draggedItem.count * draggedItem.price;
+        }
+        else {
+            if (!hoveredCell.item) {
+                findedCell = hoveredCell;
+            }
+            else {
+                findedCell = playerShip.currentTrigger.items.find(cell => !cell.item);
+            }
+
+            findedCell.item = draggedItem;
+            draggedCell.item = null;
+            playerShip.money += draggedItem.price * (draggedItem.count || 1);
+        }
+    }
+    // From shop to inv
+    else if (draggedCell.type === slotTypes.shop && hoveredCell.type !== slotTypes.shop) {
+        // Weapon
+        if (!hoveredCell.item && playerShip.money > draggedItem.price && draggedItem.type === itemTypes.weapon) {
+            hoveredCell.item = draggedItem;
+            draggedCell.item = null;
+            playerShip.money -= draggedItem.price;
+        }
+        // Another
+        else if (draggedItem.type === itemTypes.another && hoveredCell.type !== slotTypes.weapons) {
+            let findedCell = playerShip.inventory.find(cell => 
+                cell.item && cell.item.name === draggedItem.name
+            );
+
+            const totalPrice = draggedItem.price * (draggedItem.count || 1);
+
+            if (findedCell && playerShip.money > totalPrice) {
+                findedCell.item.count += draggedItem.count;
+                draggedCell.item = null;
+                playerShip.money -= totalPrice;
+            }
+            else if (playerShip.money > totalPrice){
+                if (!hoveredCell.item) {
+                    findedCell = hoveredCell;
+                }
+                else {
+                    findedCell = playerShip.currentTrigger.items.find(cell => !cell.item);
+                }
+
+                findedCell.item = draggedItem;
+                draggedCell.item = null;
+                playerShip.money -= totalPrice;
+            }
+        }
+    }
+    // From inv to inv
+    else {
+        // Weapon to another
+        if (!hoveredCell.item && hoveredCell.type === slotTypes.inventory) {
+            hoveredCell.item = draggedItem;
+            draggedCell.item = null;
+        }
+        // Another to weapon
+        else if (!hoveredCell.item && hoveredCell.type === slotTypes.weapons && draggedItem.type === itemTypes.weapon) {
+            hoveredCell.item = draggedItem;
+            draggedCell.item = null;
+        }
+        // Swap weapons
+        else if (draggedItem.type === itemTypes.weapon && hoveredItem.type === itemTypes.weapon) {
+            [ hoveredCell.item, draggedCell.item ] = [ draggedCell.item, hoveredCell.item ];
+        }
+    }
 });
 
 function getCellByMouseCoords({ x, y }) {
@@ -209,6 +259,19 @@ function drawInventory() {
             inventoryData.cellSize,
             inventoryData.cellSize
         );
+
+        if (cell.item && cell.item.count) {
+            ctx.fillStyle = 'rgba(255, 255, 255, .8)';
+            ctx.font = '10px sans-serif';
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'bottom';
+
+            ctx.fillText(
+                cell.item.count,
+                cell.x + inventoryData.inventoryOffsetX + inventoryData.cellSize,
+                cell.y + inventoryData.inventoryOffsetY + inventoryData.cellSize
+            );
+        }
     });
 
     ctx.font = "20px sans-serif";
@@ -226,7 +289,7 @@ function drawInventory() {
     showDraggingCell();
 }
 
-function createInventory(ship) {
+function createInventory(ship, level) {
     const size = inventoryData.cellSize;
     const gap = inventoryData.cellGap;
 
@@ -240,17 +303,7 @@ function createInventory(ship) {
         let item = null;
 
         if (seed.unit() > 0.4) {
-            item = {
-                name: seed.unitString(),
-                description: `weapon ${ i }`,
-                type: itemTypes.weapon,
-                lastShot: performance.now(),
-                price: Math.floor(seed.unit() * 100) + 10,
-                stats: {
-                    reload: Math.floor(seed.unit() * 300 + 100),
-                    damage: Math.floor(seed.unit() * 50 + 5)
-                }
-            }
+            item = createItem(seed, itemTypes.weapon, level);
         }
 
         ship.inventory.push({
@@ -275,12 +328,7 @@ function createInventory(ship) {
         let item = null;
 
         if (i && i % 5 === 0) {
-            item = {
-                name: seed.unitString(),
-                description: `item ${ i }`,
-                price: Math.floor(seed.unit() * 100) + 10,
-                type: itemTypes.another
-            }
+            item = createItem(seed, itemTypes.another);
         }
 
         let x = canvas.width / 2 - inventoryData.width / 2 + counter * size + inventoryOffset;
@@ -324,16 +372,35 @@ function drawShop() {
             inventoryData.cellSize,
             inventoryData.cellSize
         );
+
+        if (cell.item && cell.item.count) {
+            ctx.fillStyle = 'rgba(255, 255, 255, .8)';
+            ctx.font = '10px sans-serif';
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'bottom';
+
+            ctx.fillText(
+                cell.item.count,
+                cell.x - inventoryData.inventoryOffsetX + inventoryData.cellSize,
+                cell.y - inventoryData.inventoryOffsetY + inventoryData.cellSize
+            );
+        }
+    });
+}
+
+function changeInventoryPrice() {
+    playerShip.inventory.forEach(cell => {
+        if (!cell.item || cell.item.type === itemTypes.weapon) return cell;
+
+        cell.item.price = computeItemPrice(itemCategories[cell.item.name]);
     });
 }
 
 function createShopStuff(shop) {
     const seed = new RNG(shop.id.toString(36).substr(2));
-
     const stuffCount = Math.floor(seed.unit() * 15) + 3;
     const size = inventoryData.cellSize;
     const gap = inventoryData.cellGap;
-
     const itemsInRow = Math.floor(inventoryData.width / size);
 
     for (let i = 0, row = 0, counter = 0, itemCounter = 0; i < 96; i++) {
@@ -342,32 +409,32 @@ function createShopStuff(shop) {
             counter = 0;
         }
 
-        let x = canvas.width / 2 - inventoryData.width / 2 + counter * size + gap;
-        let y = canvas.height / 2 - inventoryData.height / 2 + row + gap;
+        const x = canvas.width / 2 - inventoryData.width / 2 + counter * size + gap;
+        const y = canvas.height / 2 - inventoryData.height / 2 + row + gap;
 
         let item = null;
+        let findedItem = null;
 
         if (itemCounter < stuffCount) {
-            if (seed.unit() > 0.8) {
-                item = {
-                    name: seed.unitString(),
-                    description: `weapon ${ i }`,
-                    type: itemTypes.weapon,
-                    lastShot: performance.now(),
-                    price: Math.floor(seed.unit() * 100) + 10,
-                    stats: {
-                        reload: Math.floor(seed.unit() * 300 + 100),
-                        damage: Math.floor(seed.unit() * 50 + 5)
-                    }
-                }
+            const chance = ~~(seed.unit() * 10);
+
+            switch(chance) {
+                case 0:
+                    item = createItem(seed, itemTypes.weapon);
+                    break;
+                default:
+                    item = createItem(seed, itemTypes.another);
+                    break;
             }
-            else {
-                item = {
-                    name: seed.unitString(),
-                    description: `item ${ i }`,
-                    type: itemTypes.another,
-                    price: Math.floor(seed.unit() * 100) + 10
-                }
+
+            findedItem = shop.items.find(cell => 
+                cell.item && cell.item.name === item.name
+            );
+
+            if (findedItem) {
+                findedItem.item.count += item.count;
+
+                item = null;
             }
         }
 
@@ -378,8 +445,67 @@ function createShopStuff(shop) {
             index: playerShip.currentTrigger.items.length,
             item
         });
-
+            
         counter++;
         itemCounter++;
     }
+}
+
+/**
+ * 
+ * @param {object} seed seed for items
+ * @param {string} type items type (weapon/another)
+ */
+function createItem(seed, type, level) {
+    if (type === itemTypes.weapon) {
+        level = level === undefined
+            ? Math.floor(seed.unit() * config.itemsLevel.length)
+            : level;
+
+        const maxLevel = config.itemsLevel.length;
+        const data = config.itemsLevel[level];
+
+        const reload = data.reload.min + ~~(data.reload.mid * seed.unit());
+        const damage = data.damage.min + ~~(data.damage.mid * seed.unit());
+        const price = ~~(1000 / reload * damage * 500 / (maxLevel - level + 1));
+
+        return {
+            name: 'Weapon',
+            description: `ls-${ level } type.`,
+            type: itemTypes.weapon,
+            lastShot: performance.now(),
+            price,
+            stats: {
+                reload,
+                damage
+            }
+        }
+    }
+    else {
+        const itemId = ~~(legalItems.length * seed.unit());
+        
+        const item = legalItems[itemId];
+        const price = computeItemPrice(item);
+        const count = computeItemCount(item);
+
+        return {
+            name: item.name,
+            description: 'Legal item',
+            type: itemTypes.another,
+            price,
+            count
+        }
+    }
+}
+
+function computeItemPrice(item) {
+    const availability = currentSystem.availabilityItems[item.name];
+
+    return item.price.min + ~~(item.price.mid * availability);
+}
+
+function computeItemCount(item) {
+    const availability = currentSystem.availabilityItems[item.name];
+
+    return ~~(availability * 10);
 }

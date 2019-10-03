@@ -88,12 +88,12 @@ async function createPlanetTexture(planet) {
 }
 
 function drawLandscape() {
-    if (envData.current.name[0] === 'S') {
+    if (envData.current.type === envTypes.system) {
         ctx.fillStyle = '#111';
 
         ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
-    else if (envData.current.name[0] === 'P') {
+    else if (envData.current.type === envTypes.planet) {
         const x = Math.floor(playerShip.x / camera.width) * camera.width;
         const y = Math.floor(playerShip.y / camera.height) * camera.height;
 

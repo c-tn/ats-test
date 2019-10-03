@@ -29,7 +29,7 @@ function createCities(planet) {
 
         const cityData = {
             id: seed.unitString(),
-            name: `C-${ seed.unitString() }`,
+            name: `C-${ generateName(seed) }`,
         }
 
         const startX = i * (config.planetWidth / 4) - config.planetWidth / 2.5;
@@ -44,6 +44,9 @@ function createCities(planet) {
             ],
             padding: []
         }
+
+        playerShip.x = startX;
+        playerShip.y = startY;
 
         const segments = [];
 
@@ -401,8 +404,14 @@ function createBuildingZone(segments, buildings) {
         }
 
         if (!isBreak) {
-            build.push([ cos(angle) + buildWidth * sin(angle) + build[build.length - 1][0], sin(angle) - buildWidth * cos(angle) + build[build.length - 1][1] ]);
+            build.push([
+                cos(angle) + buildWidth * sin(angle) + build[build.length - 1][0],
+                sin(angle) - buildWidth * cos(angle) + build[build.length - 1][1]
+            ]);
             build.push(...parallelWall.reverse());
+            build.push([
+                segments[i].padding[0][0], segments[i].padding[0][1]
+            ]);
     
             buildings.push(build);
         }
@@ -416,7 +425,9 @@ function createBuildingZone(segments, buildings) {
  * Draw city roads
  */
 function drawRoads() {
-    if (envData.current.name[0] !== 'P') return;
+    if (envData.current.type !== envTypes.planet) return;
+
+    setShadowsParam();
 
     if (isDebug) {
         ctx.lineWidth = 1;
@@ -479,12 +490,11 @@ function drawRoads() {
 }
 
 function drawBuildings() {
-    if (envData.current.name[0] !== 'P') return;
+    if (envData.current.type !== envTypes.planet) return;
 
     ctx.fillStyle = stonePattern;
     ctx.strokeStyle = lightStonePattern;
     ctx.lineWidth = 50;
-    setShadowsParam(0, 0, 30, '#000');
 
     for (let i = 0; i < envData.current.buildings.length; i++) {
         const builds = envData.current.buildings[i];
@@ -517,7 +527,44 @@ function drawBuildings() {
 }
 
 function drawTriggers() {
-    
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'rgba(85, 0, 0, .7)';
+    setShadowsParam(0, 0, 5, '#f00');
+
+    for (let i = 0; i < envData.current.triggers.length; i++) {
+        const trigger = envData.current.triggers[i];
+
+        if (trigger.type === triggerTypes.shop) {
+            const l1 = [ trigger.zone[0], trigger.zone[trigger.zone.length - 2] ];
+            const l2 = [ 
+                trigger.zone[Math.floor(trigger.zone.length / 2 + 1)],
+                trigger.zone[Math.floor(trigger.zone.length / 2 + 2)]
+            ];
+
+            ctx.beginPath();
+
+            ctx.moveTo(
+                l1[0][0] - camera.x + camera.width / 2,
+                l1[0][1] - camera.y + camera.height / 2
+            );
+            ctx.lineTo(
+                l1[1][0] - camera.x + camera.width / 2,
+                l1[1][1] - camera.y + camera.height / 2
+            );
+
+            ctx.moveTo(
+                l2[0][0] - camera.x + camera.width / 2,
+                l2[0][1] - camera.y + camera.height / 2
+            );
+            ctx.lineTo(
+                l2[1][0] - camera.x + camera.width / 2,
+                l2[1][1] - camera.y + camera.height / 2
+            );
+
+            ctx.stroke();
+        }
+        
+    }
 }
 
 
@@ -544,6 +591,7 @@ function createTriggers(buildings, seed, triggers, type) {
         const buildId = Math.floor((buildings.length - 1) * seed.unit());
         
         triggers.push({
+            type,
             zone: buildings[buildId],
             id: seed.unitString(),
             isOpen: false,
@@ -554,6 +602,7 @@ function createTriggers(buildings, seed, triggers, type) {
                 inventoryData.inventoryOffsetY = inventoryData.height / 2
 
                 if (!this.items.length) {
+                    changeInventoryPrice();
                     createShopStuff(this);
                 }
             }

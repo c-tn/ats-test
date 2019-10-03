@@ -7,14 +7,43 @@ const config = {
     roadLength: 500,
     angleOffset: 25,
     planetWidth: 200000,
-    planetHeight: 100000
+    planetHeight: 100000,
+    itemsLevel: [
+        {
+            damage: {
+                min: 3,
+                mid: 7
+            },
+            reload: {
+                min: 800,
+                mid: 400
+            },
+            health: {
+                min: 30,
+                mid: 30
+            }
+        }, {
+            damage: {
+                min: 8,
+                mid: 10
+            },
+            reload: {
+                min: 700,
+                mid: 400
+            },
+            health: {
+                min: 40,
+                mid: 30
+            }
+        }
+    ]
 }
 
 const cos = Math.cos;
 const sin = Math.sin;
 
 function pointInPoly(polyCords, pointX, pointY) {
-	var i, j, c = 0;
+	let i, j, c = 0;
  
 	for (i = 0, j = polyCords.length - 1; i < polyCords.length; j = i++)
 	{

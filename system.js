@@ -1,4 +1,11 @@
-function generateEnv(x, y, seed) {
+const envTypes = {
+    chunk: 0,
+    system: 1,
+    planet: 2,
+    sun: 3
+}
+
+function generateEnv(x, y) {
     const chunkSize = config.chunkSize;
 
     for (let i = x - chunkSize; i < x + chunkSize * 2; i += chunkSize) {
@@ -7,11 +14,12 @@ function generateEnv(x, y, seed) {
                 x: i,
                 y: j,
                 name: '',
+                type: envTypes.chunk,
                 seed: new RNG(`${ seedValue }${ i }${ j }`),
                 systems: {}
             };
 
-            newChunk.name = `C-${ newChunk.seed.unitString() }`;
+            newChunk.name = `${ generateName(newChunk.seed) }`;
 
             if (envData.chunks[newChunk.name]) continue;
 
@@ -29,28 +37,42 @@ function createChunkSystem(chunk) {
         let newSystem = {
             x: chunk.seed.unit() * config.chunkSize,
             y: chunk.seed.unit() * config.chunkSize,
-            name: `S-${ chunk.seed.unitString() }`,
+            name: `${ generateName(chunk.seed) }`,
+            type: envTypes.system,
             parent: chunk.name,
             seed: new RNG(chunk.seed.unitString()),
-            planets: {}
+            isOpen: false,
+            planets: {},
+            triggers: []
         };
-
-        createSystemPlanets(newSystem);
 
         chunk.systems[newSystem.name] = newSystem;
     }
 }
 
+function createCrisisItem(system) {
+    system.availabilityItems = {};
+
+    for (let i = 0; i < legalItems.length; i++) {
+        const item = legalItems[i];
+        const minAvailability = item.crisis && item.crisis.availability || system.seed.unit();
+        const availability = +(system.seed.unit() * (1 - minAvailability) + minAvailability).toFixed(2);
+
+        system.availabilityItems[item.name] = availability;
+    }
+}
+
 function createSystemPlanets(system) {
-    system.planets[`V-${ system.name.slice(2) }`] = {
+    system.planets[system.name] = {
         x: 0,
         y: 0,
         r: 0,
         size: config.minPlanetSize,
         currentSpeed: 0,
         currentAngle: 0,
+        type: envTypes.sun,
 
-        name: `V-${ system.name.slice(2) }`,
+        name: system.name,
         parent: system.name,
         seed: system.seed.unitString(),
         color: {
@@ -73,7 +95,8 @@ function createSystemPlanets(system) {
             currentSpeed: system.seed.unit() * 0.0001,
             currentAngle: system.seed.unit() * (360 * Math.PI / 180),
 
-            name: `P-${ system.seed.unitString() }`,
+            type: envTypes.planet,
+            name: generateName(system.seed),
             parent: system.name,
             seed: system.seed.unitString(),
             color: textureColors[colorId],

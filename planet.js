@@ -4,9 +4,9 @@ async function createPlanetSprite(planet) {
 
     tempCanvas.width = tempCanvas.height = planet.size * 2 + 5 * planet.size / 100;
 
-    const type = planet.name[0];
-    const amp = type === 'V' ? 3 : seed.unit() * 2 + 0.3;
-    const freq = type === 'V' ? 0.03 : 0.004;
+    const type = planet.type;
+    const amp = type === envTypes.sun ? 3 : seed.unit() * 2 + 0.3;
+    const freq = type === envTypes.sun ? 0.03 : 0.004;
     const { color } = planet;
 
     const planetNoise = planetGenerator.generateNoise(seed.unitString(), amp, freq, 1040, 1040, color.r, color.g, color.b, planet.size);
@@ -23,14 +23,14 @@ async function createPlanetSprite(planet) {
 }
 
 function drawPlanets() {
-    if (envData.current.name[0] !== 'S') return;
+    if (envData.current.type !== envTypes.system) return;
 
     Object.values(currentSystem.planets).forEach(async planet => {
         if (!planet.sprite) {
             planet.sprite = await createPlanetSprite(planet);
         }
         else {
-            if (planet.name[0] === 'V') {
+            if (planet.type === envTypes.sun) {
                 setShadowsParam(0, 0, 100, '#aa0');
             }
             else {

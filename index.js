@@ -76,6 +76,63 @@ const itemTypes = {
     another: 'another'
 }
 
+const spreadTypes = {
+    legal: 'legal',
+    unlegal: 'unlegal'
+}
+
+const itemCategories = {
+    medicine: {
+        name: 'medicine',
+        spread: spreadTypes.legal,
+        crisis: {
+            availability: 0.3,
+            crisisMarkup: 20
+        },
+        price: {
+            min: 100,
+            mid: 200
+        }
+    },
+    minerals: {
+        name: 'minerals',
+        spread: spreadTypes.legal,
+        crisis: false,
+        price: {
+            min: 50,
+            mid: 50
+        }
+    },
+    drugs: {
+        name: 'drugs',
+        spread: spreadTypes.unlegal,
+        crisis: false,
+        price: {
+            min: 200,
+            mid: 400
+        }
+    }
+}
+
+const crisisItems = [];
+const unlegalItems = [];
+const legalItems = [];
+
+function setItemsInCategories() {
+    Object.values(itemCategories).forEach(item => {
+        if (item.crisis) {
+            crisisItems.push(item);
+        }
+
+        if (item.spread === spreadTypes.unlegal) {
+            unlegalItems.push(item);
+        }
+        else if (item.spread === spreadTypes.legal) {
+            legalItems.push(item);
+        }
+    });
+}
+
 const slotTypes = {
     weapons: 'weapons',
     inventory: 'inventory',
@@ -85,6 +142,10 @@ const slotTypes = {
 function createShip(isRandom) {
     const seedNum = seed.unit();
     const seedStr = seedNum.toString(36).substr(2);
+
+    const level = isRandom ? ~~(seed.unit() * config.itemsLevel.length) : 0;
+    const data = config.itemsLevel[level];
+    const hp = ~~(data.health.mid * seed.unit()) + data.health.min;
 
     let ship = {
         id: seedNum,
@@ -96,7 +157,7 @@ function createShip(isRandom) {
         currentSpeed: 0,
         maxSpeed: 20,
         velocity: 0.1,
-        hp: 100,
+        hp,
         money: 100,
 
         inventory: [],
@@ -118,7 +179,7 @@ function createShip(isRandom) {
         saturation: seedNum
     });
 
-    createInventory(ship);
+    createInventory(ship, level);
     
     return ship;
 }
@@ -126,7 +187,7 @@ function createShip(isRandom) {
 let playerShip = null;
 let camera = null;
 
-async function init() {
+async function startGame() {
     playerShip = createShip();
     camera = {
         x: playerShip.x,
@@ -143,7 +204,7 @@ async function init() {
     currentPlanet.ships.push(playerShip);
 }
 
-const seedValue = 'czbnyu3up6t' || Math.random().toString(36).substr(2);
+const seedValue = '0v02sysvbqtr' || Math.random().toString(36).substr(2);
 console.log(seedValue);
 const seed = new RNG(seedValue);
 
@@ -199,7 +260,7 @@ function setShadowsParam(offsetX, offsetY, blur, color) {
 const imageAngle = 90 * Math.PI / 180;
 
 function drawShips() {
-    if (envData.current.name[0] === 'P') {
+    if (envData.current.type === envTypes.planet) {
         setShadowsParam(40, 20, 3, 'rgba(0, 0, 0, .3)');
     }
     
@@ -445,6 +506,7 @@ function gameLoop() {
     drawLandscape();
     drawRoads();
     drawBuildings();
+    drawTriggers();
     drawPlanets();
     drawBullets();
     drawShips();
@@ -485,7 +547,7 @@ function wheelActions(wheelDelta) {
  */
 async function enterPlanet() {
     const findedPlanet = Object.values(currentSystem.planets).find(planet => {
-        if (planet.name[0] === 'V') return;
+        if (planet.type === envTypes.sun) return;
 
         const centerX = planet.x;
         const centerY = planet.y;

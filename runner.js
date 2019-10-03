@@ -13,20 +13,34 @@ function fileLoader(req) {
         files.loaded++;
 
         if (files.loaded >= files.total) {
-            await init();
+            await startGame();
             currentCtrl = fpsCtrl(100, gameLoop);
         }
     });
 }
 
-generateEnv(0, 0);
+let currentChunk = null;
+let currentSystem = null;
+let currentPlanet = null;
 
-let currentChunk = Object.values(envData.chunks)[4];
-let currentSystem = Object.values(currentChunk.systems)[0];
-let currentPlanet = Object.values(currentSystem.planets)[1];
+function init() {
+    setItemsInCategories();
+    generateEnv(0, 0);
 
-envData.current = envData.chunks[currentChunk.name]
-    .systems[currentSystem.name]
-    .planets[currentPlanet.name];
+    currentChunk = Object.values(envData.chunks)[4];
+    currentSystem = Object.values(currentChunk.systems)[0];
 
-createAnotherTexture();
+    createSystemPlanets(currentSystem);
+    createCrisisItem(currentSystem);
+    currentSystem.isOpen = true;
+
+    currentPlanet = Object.values(currentSystem.planets)[1];
+
+    envData.current = envData.chunks[currentChunk.name]
+        .systems[currentSystem.name]
+        .planets[currentPlanet.name];
+
+    createAnotherTexture();
+}
+
+init();

@@ -25,7 +25,7 @@ function zoomOutMap() {
 }
 
 function zoomInMap() {
-    if (envData.current.name[0] === 'P' && mapData.mapType > mapTypes.planet) {
+    if (envData.current.type === envData.planet && mapData.mapType > mapTypes.planet) {
         mapData.mapType--;
     }
     else if (mapData.mapType > mapTypes.system) {
@@ -213,6 +213,11 @@ function drawShipsOnMap(env = {}) {
     });
 }
 
+canvas.oncontextmenu = () => {
+
+    return false;
+}
+
 canvas.addEventListener('click', ({ offsetX, offsetY }) => {
     if (!mapData.isOpen) return;
 
@@ -349,6 +354,13 @@ function getCoordsOnMap({ offsetX, offsetY }) {
 }
 
 function enterSystem(system, chunk) {
+    if (!system.isOpen) {
+        createSystemPlanets(system);
+        createCrisisItem(system);
+
+        system.isOpen = true;
+    }
+
     popPlayerShip();
 
     playerShip.x = 0;
