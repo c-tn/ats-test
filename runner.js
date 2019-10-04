@@ -41,6 +41,7 @@ function init() {
         .planets[currentPlanet.name];
 
     createAnotherTexture();
+    createLandings();
 }
 
 init();

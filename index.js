@@ -3,6 +3,8 @@ function generateSprite({
     saturation = 0.5,
     width = 9,
     height = 16,
+    isNoEdges = false,
+    isNoSample = false,
     data,
     seed
 } = {}) {
@@ -17,7 +19,9 @@ function generateSprite({
         hue,
         saturation,
         seed,
-        isColored: true
+        isColored: true,
+        isNoEdges,
+        isNoSample
     });
 
     let resizedSprite = resize(sprite.canvas, 5);

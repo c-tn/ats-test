@@ -4,6 +4,10 @@ const triggerTypes = {
     shop: 0
 }
 
+const citySprites = {
+    landing: null
+}
+
 /**
  * Create cities for planet
  * @param {object} planet 
@@ -529,18 +533,19 @@ function drawBuildings() {
 function drawTriggers() {
     ctx.lineWidth = 2;
     ctx.strokeStyle = 'rgba(85, 0, 0, .7)';
-    setShadowsParam(0, 0, 5, '#f00');
 
     for (let i = 0; i < envData.current.triggers.length; i++) {
         const trigger = envData.current.triggers[i];
 
+        setShadowsParam(0, 0, 5, '#f00');
+
         if (trigger.type === triggerTypes.shop) {
+            
             const l1 = [ trigger.zone[0], trigger.zone[trigger.zone.length - 2] ];
             const l2 = [ 
                 trigger.zone[Math.floor(trigger.zone.length / 2 + 1)],
                 trigger.zone[Math.floor(trigger.zone.length / 2 + 2)]
             ];
-
             ctx.beginPath();
 
             ctx.moveTo(
@@ -563,7 +568,28 @@ function drawTriggers() {
 
             ctx.stroke();
         }
-        
+
+        setShadowsParam();
+
+        for (let j = 1; j < 10; j++) {
+            const zone = envData.current.triggers[i].zone;
+            const angle = Math.atan2(zone[1][1] - zone[0][1], zone[1][0] - zone[0][0]) + Math.PI;
+            
+            ctx.save();
+            ctx.translate(
+                zone[0][0] - camera.x + camera.width / 2,
+                zone[0][1] - camera.y + camera.height / 2
+            );
+    
+            ctx.rotate(angle);
+    
+            ctx.drawImage(
+                citySprites.landing,
+                -cos(0) * (citySprites.landing.width * j),
+                sin(0) * (citySprites.landing.height * j) - citySprites.landing.height
+            );
+            ctx.restore();
+        }
     }
 }
 
@@ -599,10 +625,10 @@ function createTriggers(buildings, seed, triggers, type) {
             action() {
                 this.isOpen = !this.isOpen;
                 inventoryData.isOpen = this.isOpen;
-                inventoryData.inventoryOffsetY = inventoryData.height / 2
+                inventoryData.inventoryOffsetY = inventoryData.height / 2;
+                changeInventoryPrice();
 
                 if (!this.items.length) {
-                    changeInventoryPrice();
                     createShopStuff(this);
                 }
             }
@@ -641,4 +667,37 @@ function pushShips(planet) {
     for (let i = 0; i < shipsCount; i++) {
         planet.ships.push(createShip(true));
     }
+}
+
+function createLandings() {
+    const sprite = generateSprite({
+        hue: 0.1,
+        seed: ' ',
+        saturation: 0,
+        isNoEdges: true,
+        isNoSample: true,
+        data: [
+            1, 1, 1, 1, 1, 1, 1, 1, 1,
+            1, 1, 1, 0, 0, 0, 0, 0, 0,
+            1, 1, 0, 0, 0, 0, 0, 0, 0,
+            1, 0, 0, 0, 0, 0, 0, 0, 0,
+            1, 0, 0, 0, 0, 0, 0, 0, 0,
+            1, 0, 0, 0, 0, 0, 0, 0, 0,
+            1, 0, 0, 0, 0, 0, 0, 0, 1,
+            1, 1, 0, 0, 0, 0, 0, 1, 1,
+            1, 1, 0, 0, 0, 0, 0, 1, 1,
+            1, 0, 0, 0, 0, 0, 0, 0, 1,
+            1, 0, 0, 0, 0, 0, 0, 0, 0,
+            1, 0, 0, 0, 0, 0, 0, 0, 0,
+            1, 0, 0, 0, 0, 0, 0, 0, 0,
+            1, 1, 0, 0, 0, 0, 0, 0, 0,
+            1, 1, 1, 0, 0, 0, 0, 0, 0,
+            1, 1, 1, 1, 1, 1, 1, 1, 1,
+        ]
+    });
+
+    let img = new Image();
+    img.src = sprite.toDataURL();
+
+    citySprites.landing = img;
 }

@@ -473,7 +473,7 @@ function drawShop() {
 
 function changeInventoryPrice() {
     playerShip.inventory.forEach(cell => {
-        if (!cell.item || cell.item.type === itemTypes.weapon) return cell;
+        if (!cell.item || cell.item.type === itemTypes.weapon) return;
 
         cell.item.price = computeItemPrice(itemCategories[cell.item.name]);
     });
