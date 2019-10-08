@@ -4,9 +4,11 @@ let ctx = canvas.getContext('2d');
 canvas.width = 2048;
 canvas.height = 1080;
 
+const { cos, sin } = Math;
+
 let sun = {
-    x: -50000,
-    y: -50000,
+    x: 0,
+    y: 0,
 }
 
 let figures = [
@@ -42,61 +44,65 @@ function loop() {
     ctx.fillStyle = '#fff';
     ctx.strokeStyle = '#fff';
 
-    drawRayCasts();
-
-    ctx.beginPath();
-    ctx.arc(sun.x, sun.y, 10, 0, Math.PI * 2);
-    ctx.closePath();
-    ctx.fill();
-
-    figures.forEach(line => {
-        ctx.beginPath();
-
-        ctx.moveTo(line.x1, line.y1);
-        ctx.lineTo(line.x2, line.y2);
-
-        ctx.stroke();
-
-        ctx.closePath();
-    });
+    drawBuild();
 
     requestAnimationFrame(loop);
 }
 
-function drawRayCasts() {
+function drawBuild() {
     ctx.lineWidth = 1;
 
-    let nearest = Infinity;
-    let shadowAngle = 0;
+    const f = figures[0];
+
+    const a = Math.atan2(f.y1 - sun.y, f.x1 - sun.x) + Math.PI;
+    const o = Math.sqrt((f.x1 - sun.x)**2 + (f.y1 - sun.y)**2) / 50;
 
     figures.forEach(line => {
-        const dist = Math.sqrt((sun.x - line.x1)**2 + (sun.y - line.y1)**2) / canvas.width * 200;
-        shadowAngle = Math.atan2(line.y1 - sun.y, line.x1 - sun.x) + Math.PI;
-
-        if (dist < nearest) {
-            nearest = dist;
-        }
-    });
-
-    const shadowLength = nearest / 500 * 200;
-
-    figures.forEach(line => {
-        ctx.fillStyle = 'rgba(255, 255, 255, .3)';
         ctx.beginPath();
+
         ctx.moveTo(line.x1, line.y1);
         ctx.lineTo(
-            Math.cos(shadowAngle - Math.PI) * shadowLength + line.x1,
-            Math.sin(shadowAngle - Math.PI) * shadowLength + line.y1
+            line.x1 - cos(a),
+            line.y1 - sin(a)
         );
         ctx.lineTo(
-            Math.cos(shadowAngle - Math.PI) * shadowLength + line.x2,
-            Math.sin(shadowAngle - Math.PI) * shadowLength + line.y2
+            line.x2 - cos(a),
+            line.y2 - sin(a)
         );
-        ctx.lineTo(line.x2, line.y2);
+        ctx.lineTo(
+            line.x2 - cos(a) * o,
+            line.y2 - sin(a) * o
+        );
+        ctx.lineTo(
+            line.x1 - cos(a) * o,
+            line.y1 - sin(a) * o
+        );
 
-        ctx.closePath();
+        ctx.fillStyle = '#555';
+        ctx.strokeStyle = '#444';
         ctx.fill();
+        ctx.stroke();
     });
+
+    ctx.moveTo(
+        f.x1 - cos(a) * o,
+        f.y1 - sin(a) * o
+    );
+    ctx.beginPath();
+
+    figures.forEach(line => {
+        ctx.lineTo(
+            line.x2 - cos(a) * o,
+            line.y2 - sin(a) * o
+        );
+    });
+
+    ctx.closePath();
+
+    ctx.fillStyle = '#888';
+    ctx.strokeStyle = '#888';
+    ctx.fill();
+    ctx.stroke();
 }
 
 canvas.addEventListener('mousemove', ({ offsetX, offsetY }) => {

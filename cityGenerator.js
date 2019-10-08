@@ -381,7 +381,7 @@ function getLastSegments(segment, count, segments = [], isCrossed) {
 
 function createBuildingZone(segments, buildings) {
     for (let i = 0; i < segments.length; i++) {
-        const buildLength = Math.floor(seed.unit() * 6) + 2;
+        const buildLength = Math.floor(seed.unit() * 1) + 1;
         const buildWidth = 300;
         let counter = i;
         let build = [];
@@ -495,10 +495,9 @@ function drawRoads() {
 
 function drawBuildings() {
     if (envData.current.type !== envTypes.planet) return;
-
-    ctx.fillStyle = stonePattern;
-    ctx.strokeStyle = lightStonePattern;
-    ctx.lineWidth = 50;
+    
+    setShadowsParam();
+    ctx.lineWidth = 1;
 
     for (let i = 0; i < envData.current.buildings.length; i++) {
         const builds = envData.current.buildings[i];
@@ -506,11 +505,47 @@ function drawBuildings() {
         for (let j = 0; j < builds.length; j++) {
             const build = builds[j];
 
+            const angle = Math.atan2(build[0][1] - playerShip.y, build[0][0] - playerShip.x) + Math.PI;
+            const offset = Math.sqrt((build[0][0] - playerShip.x)**2 + (build[0][1] - playerShip.y)**2) / 40;
+        
+            ctx.fillStyle = '#333';
+            ctx.strokeStyle = '#333';
+
+            for (let k = 1; k < build.length; k++) {
+                ctx.beginPath();
+                ctx.moveTo(
+                    build[k][0] - camera.x + camera.width / 2,
+                    build[k][1] - camera.y + camera.height / 2
+                );
+                ctx.lineTo(
+                    build[k][0] - cos(angle) - camera.x + camera.width / 2,
+                    build[k][1] - sin(angle) - camera.y + camera.height / 2
+                );
+                ctx.lineTo(
+                    build[k - 1][0] - cos(angle) - camera.x + camera.width / 2,
+                    build[k - 1][1] - sin(angle) - camera.y + camera.height / 2
+                );
+                ctx.lineTo(
+                    build[k - 1][0] - cos(angle) * offset - camera.x + camera.width / 2,
+                    build[k - 1][1] - sin(angle) * offset - camera.y + camera.height / 2
+                );
+                ctx.lineTo(
+                    build[k][0] - cos(angle) * offset - camera.x + camera.width / 2,
+                    build[k][1] - sin(angle) * offset - camera.y + camera.height / 2
+                );
+                ctx.fill();
+                ctx.stroke();
+            }
+
+            ctx.fillStyle = stonePattern;
+            ctx.strokeStyle = lightStonePattern;
+            ctx.lineWidth = 1;
+
             ctx.save();
             ctx.beginPath();
             ctx.translate(
-                build[0][0] - camera.x + camera.width / 2,
-                build[0][1] - camera.y + camera.height / 2
+                build[0][0] - cos(angle) * offset - camera.x + camera.width / 2,
+                build[0][1] - sin(angle) * offset - camera.y + camera.height / 2
             );
     
             for (let k = 0; k < build.length; k++) {
@@ -521,24 +556,25 @@ function drawBuildings() {
             }
     
             ctx.closePath();
-            setShadowsParam();
             ctx.stroke();
-            setShadowsParam(0, 0, 20, '#000');
             ctx.fill();
             ctx.restore();
         }
     }
 }
-
 function drawTriggers() {
     for (let i = 0; i < envData.current.triggers.length; i++) {
         const trigger = envData.current.triggers[i];
         const pos = trigger.pos;
+        const build = trigger.build;
+
+        const angle = Math.atan2(build[0][1] - playerShip.y, build[0][0] - playerShip.x) + Math.PI;
+        const offset = Math.sqrt((build[0][0] - playerShip.x)**2 + (build[0][1] - playerShip.y)**2) / 40;
 
         ctx.save();
         ctx.translate(
-            pos[0] - camera.x + camera.width / 2,
-            pos[1] - camera.y + camera.height / 2
+            pos[0] - camera.x + camera.width / 2 - cos(angle) * offset,
+            pos[1] - camera.y + camera.height / 2 - sin(angle) * offset
         );
 
         ctx.rotate(trigger.angle);
@@ -605,7 +641,8 @@ function createShopLandings(buildings, seed, triggers) {
             angle,
             owner: null,
             items: buildings[buildId].items,
-            isOpen: false
+            isOpen: false,
+            build: buildings[buildId]
         };
 
         shop.action = () => {
