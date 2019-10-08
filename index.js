@@ -143,6 +143,12 @@ const slotTypes = {
     shop: 'shop'
 }
 
+const animationTypes = {
+    idle: 'idle',
+    landingIn: 'landing-in',
+    landingOut: 'landing-out'
+}
+
 function createShip(isRandom) {
     const seedNum = seed.unit();
     const seedStr = seedNum.toString(36).substr(2);
@@ -163,6 +169,9 @@ function createShip(isRandom) {
         velocity: 0.1,
         hp,
         money: 100,
+        flyHeight: 40,
+        currentAnimation: animationTypes.idle,
+        spriteSize: 1,
 
         inventory: [],
 
@@ -264,11 +273,21 @@ function setShadowsParam(offsetX, offsetY, blur, color) {
 const imageAngle = 90 * Math.PI / 180;
 
 function drawShips() {
-    if (envData.current.type === envTypes.planet) {
-        setShadowsParam(40, 20, 3, 'rgba(0, 0, 0, .3)');
-    }
-    
     envData.current.ships = envData.current.ships.filter(ship => {
+        if (envData.current.type === envTypes.planet) {
+            setShadowsParam(ship.flyHeight, ship.flyHeight, 3, 'rgba(0, 0, 0, .3)');
+        }
+
+        switch(ship.currentAnimation) {
+            case animationTypes.landingIn:
+                landing(true, ship);
+                break;
+            case animationTypes.landingOut:
+                landing(false, ship);
+                break;
+            default: break;
+        }
+
         ctx.save();
             ctx.translate(
                 ship.x - camera.x + camera.width / 2,
@@ -277,10 +296,15 @@ function drawShips() {
 
             ctx.rotate(ship.currentAngle + imageAngle);
 
+            const w = ship.sprite.width * ship.spriteSize;
+            const h = ship.sprite.height * ship.spriteSize;
+
             ctx.drawImage(
                 ship.sprite,
-                -ship.sprite.width / 2,
-                -ship.sprite.height / 2,
+                -w / 2,
+                -h / 2,
+                w,
+                h
             );
         ctx.restore();
 

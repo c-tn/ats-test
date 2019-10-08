@@ -531,65 +531,24 @@ function drawBuildings() {
 }
 
 function drawTriggers() {
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = 'rgba(85, 0, 0, .7)';
-
     for (let i = 0; i < envData.current.triggers.length; i++) {
         const trigger = envData.current.triggers[i];
+        const pos = trigger.pos;
 
-        setShadowsParam(0, 0, 5, '#f00');
+        ctx.save();
+        ctx.translate(
+            pos[0] - camera.x + camera.width / 2,
+            pos[1] - camera.y + camera.height / 2
+        );
 
-        if (trigger.type === triggerTypes.shop) {
-            
-            const l1 = [ trigger.zone[0], trigger.zone[trigger.zone.length - 2] ];
-            const l2 = [ 
-                trigger.zone[Math.floor(trigger.zone.length / 2 + 1)],
-                trigger.zone[Math.floor(trigger.zone.length / 2 + 2)]
-            ];
-            ctx.beginPath();
+        ctx.rotate(trigger.angle);
 
-            ctx.moveTo(
-                l1[0][0] - camera.x + camera.width / 2,
-                l1[0][1] - camera.y + camera.height / 2
-            );
-            ctx.lineTo(
-                l1[1][0] - camera.x + camera.width / 2,
-                l1[1][1] - camera.y + camera.height / 2
-            );
-
-            ctx.moveTo(
-                l2[0][0] - camera.x + camera.width / 2,
-                l2[0][1] - camera.y + camera.height / 2
-            );
-            ctx.lineTo(
-                l2[1][0] - camera.x + camera.width / 2,
-                l2[1][1] - camera.y + camera.height / 2
-            );
-
-            ctx.stroke();
-        }
-
-        setShadowsParam();
-
-        for (let j = 1; j < 10; j++) {
-            const zone = envData.current.triggers[i].zone;
-            const angle = Math.atan2(zone[1][1] - zone[0][1], zone[1][0] - zone[0][0]) + Math.PI;
-            
-            ctx.save();
-            ctx.translate(
-                zone[0][0] - camera.x + camera.width / 2,
-                zone[0][1] - camera.y + camera.height / 2
-            );
-    
-            ctx.rotate(angle);
-    
-            ctx.drawImage(
-                citySprites.landing,
-                -cos(0) * (citySprites.landing.width * j),
-                sin(0) * (citySprites.landing.height * j) - citySprites.landing.height
-            );
-            ctx.restore();
-        }
+        ctx.drawImage(
+            citySprites.landing,
+            -citySprites.landing.width / 2,
+            -citySprites.landing.height / 2
+        );
+        ctx.restore();
     }
 }
 
@@ -614,25 +573,70 @@ function createTriggers(buildings, seed, triggers, type) {
     if (!buildings.length) return;
 
     if (type === triggerTypes.shop) {
-        const buildId = Math.floor((buildings.length - 1) * seed.unit());
-        
-        triggers.push({
-            type,
-            zone: buildings[buildId],
-            id: seed.unitString(),
-            isOpen: false,
-            items: [],
-            action() {
-                this.isOpen = !this.isOpen;
-                inventoryData.isOpen = this.isOpen;
-                inventoryData.inventoryOffsetY = inventoryData.height / 2;
-                changeInventoryPrice();
+        createShopLandings(buildings, seed, triggers);
+    }
+}
 
-                if (!this.items.length) {
-                    createShopStuff(this);
-                }
+function createShopLandings(buildings, seed, triggers) {
+    const buildId = Math.floor((buildings.length - 1) * seed.unit());
+    const id = seed.unitString();
+
+    const p1 = buildings[buildId][0];
+    const p2 = buildings[buildId][1];
+    const d = Math.sqrt((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2);
+    const angle = Math.atan2(p2[1] - p1[1], p2[0] - p1[0]);
+    const w = citySprites.landing.width;
+    const h = citySprites.landing.height;
+
+    const landingsCount = ~~(d / w);
+
+    buildings[buildId].items = [];
+
+    for (let i = 0; i < landingsCount; i++) {
+        const pos = [
+            cos(angle + Math.PI / 2) * (h / 2) - (w * i + w / 2) * sin(angle - Math.PI / 2) + p1[0],
+            sin(angle + Math.PI / 2) * (h / 2) + (w * i + w / 2) * cos(angle - Math.PI / 2) + p1[1]
+        ];
+
+        let shop = {
+            type: triggerTypes.shop,
+            id,
+            pos,
+            angle,
+            owner: null,
+            items: buildings[buildId].items,
+            isOpen: false
+        };
+
+        shop.action = () => {
+            if (playerShip.currentSpeed !== 0 || shop.owner && shop.owner !== playerShip) return;
+
+            if (!shop.isOpen) {
+                playerShip.canControl = false;
+                playerShip.currentAnimation = animationTypes.landingIn;
+                shop.owner = playerShip;
+                openShop(shop);
             }
-        });
+            else {
+                openShop(shop);
+                playerShip.canControl = true;
+                playerShip.currentAnimation = animationTypes.landingOut;
+                shop.owner = null;
+            }
+        };
+
+        triggers.push(shop);
+    }
+}
+
+function openShop(shop) {
+    shop.isOpen = !shop.isOpen;
+    inventoryData.isOpen = shop.isOpen;
+    inventoryData.inventoryOffsetY = inventoryData.height / 2;
+    changeInventoryPrice();
+
+    if (!shop.items.length) {
+        createShopStuff(shop);
     }
 }
 
@@ -643,16 +647,22 @@ function checkTriggers() {
     playerShip.currentTrigger = envData.current.triggers.find(trigger => {
         let inside = false;
 
-        for (let i = 1; i < trigger.zone.length; j = i++) {
-            const x1 = trigger.zone[i - 1][0];
-            const y1 = trigger.zone[i - 1][1];
-            const x2 = trigger.zone[i][0];
-            const y2 = trigger.zone[i][1];
+        const d = Math.sqrt((playerShip.x - trigger.pos[0])**2 + (playerShip.y - trigger.pos[1])**2);
 
-            const intersect = ((y1 > playerShip.y) != (y2 > playerShip.y)) && (playerShip.x < (x2 - x1) * (playerShip.y - y1) / (y2 - y1) + x1);
-
-            if (intersect) inside = !inside;
+        if (d < citySprites.landing.width / 4) {
+            inside = true;
         }
+        // Check in rect
+        // for (let i = 1; i < trigger.zone.length; j = i++) {
+        //     const x1 = trigger.zone[i - 1][0];
+        //     const y1 = trigger.zone[i - 1][1];
+        //     const x2 = trigger.zone[i][0];
+        //     const y2 = trigger.zone[i][1];
+
+        //     const intersect = ((y1 > playerShip.y) != (y2 > playerShip.y)) && (playerShip.x < (x2 - x1) * (playerShip.y - y1) / (y2 - y1) + x1);
+
+        //     if (intersect) inside = !inside;
+        // }
 
         return inside;   
     });
