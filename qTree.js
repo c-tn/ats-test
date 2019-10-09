@@ -16,9 +16,9 @@ function createCircle(x, y, d) {
 
 function checkPointInRect(rect, point) {
     return (
-        point.x > rect.x &&
+        point.x >= rect.x &&
         point.x < rect.x + rect.w &&
-        point.y > rect.y &&
+        point.y >= rect.y &&
         point.y < rect.y + rect.h
     );
 }
@@ -44,9 +44,9 @@ function checkRectsIntersects(b1, b2) {
         b1 = createRect(b1.x - b1.d, b1.y - b1.d, b1.d * 2, b1.d * 2);
     }
     return (
-        b1.x > b2.x ||
+        b1.x >= b2.x ||
         b1.x + b1.w < b2.x + b2.w ||
-        b1.y > b2.y ||
+        b1.y >= b2.y ||
         b1.y + b1.h < b2.y + b2.h
     );
 }

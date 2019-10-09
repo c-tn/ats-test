@@ -1,4 +1,5 @@
-let isDebug = false;
+let isDebug = true;
+let log = false;
 
 const triggerTypes = {
     shop: 0
@@ -494,7 +495,7 @@ function drawRoads() {
         }
     }
 }
-log = true;
+
 function drawBuildings() {
     if (envData.current.type !== envTypes.planet) return;
     
@@ -509,6 +510,11 @@ function drawBuildings() {
 
             ctx.fillStyle = '#444';
             ctx.strokeStyle = '#444';
+
+            if (isDebug) {
+                ctx.fillStyle = 'rgba(200, 0, 0, .1)';
+                ctx.strokeStyle = '#c80000';
+            }
 
             let prevAngle = Math.atan2(build[0][1] - playerShip.y, build[0][0] - playerShip.x) + Math.PI;
             let prevOffset = Math.sqrt((build[0][0] - playerShip.x)**2 + (build[0][1] - playerShip.y)**2) / build.height;
@@ -571,7 +577,12 @@ function drawBuildings() {
                     build[k][1] - build[0][1]
                 );
             }
-    
+
+            if (isDebug) {
+                ctx.fillStyle = 'rgba(200, 0, 0, .1)';
+                ctx.strokeStyle = '#c80000';
+            }
+
             ctx.closePath();
             ctx.fill();
             ctx.restore();

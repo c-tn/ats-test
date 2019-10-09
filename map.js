@@ -25,12 +25,17 @@ function zoomOutMap() {
 }
 
 function zoomInMap() {
-    if (envData.current.type === envData.planet && mapData.mapType > mapTypes.planet) {
+    if (envData.current.type === envTypes.planet && mapData.mapType > mapTypes.planet) {
         mapData.mapType--;
     }
     else if (mapData.mapType > mapTypes.system) {
         mapData.mapType--;
     }
+}
+
+function centerOnCurrentSystem() {
+    mapData.offsetX = currentChunk.x + config.chunkSize / 2;
+    mapData.offsetY = currentChunk.y + config.chunkSize / 2;
 }
 
 function drawMap() {
@@ -48,57 +53,84 @@ function drawMap() {
 
     // Chunks
     if (mapData.mapType === mapTypes.chunks) {
-        Object.values(envData.chunks).forEach(chunk => {
-            ctx.save();
-                ctx.translate(
-                    canvas.width / 2,
-                    canvas.height / 2
+        const mapRect = createRect(
+            mapData.offsetX - mapData.width / 2 - config.chunkSize,
+            mapData.offsetY - mapData.height / 2 - config.chunkSize,
+            mapData.width + config.chunkSize,
+            mapData.height + config.chunkSize
+        );
+
+        const chunks = systemQtree.query(mapRect);
+
+        chunks.forEach(point => {
+            const chunk = point.data;
+
+            if (isDebug) {
+                ctx.strokeStyle = 'rgba(255, 255, 255, .2)';
+                ctx.fillStyle = '#aaa';
+                ctx.font = '10px Arial';
+                ctx.textAlign = 'left';
+
+                ctx.strokeRect(
+                    chunk.x - mapData.offsetX + mapData.width / 2 + (canvas.width - mapData.width) / 2,
+                    chunk.y - mapData.offsetY + mapData.height / 2 + (canvas.height - mapData.height) / 2,
+                    config.chunkSize,
+                    config.chunkSize
                 );
+                ctx.fillText(
+                    `${ chunk.x } ${ chunk.y}`,
+                    chunk.x - mapData.offsetX + mapData.width / 2 + (canvas.width - mapData.width) / 2,
+                    chunk.y - mapData.offsetY + mapData.height / 2 + (canvas.height - mapData.height) / 2,
+                );
+            }
 
-                Object.values(chunk.systems).forEach(system => {
-                    ctx.fillStyle = '#fff';
+            ctx.save();
+            ctx.translate(
+                canvas.width / 2,
+                canvas.height / 2
+            );
 
-                    if (currentSystem === system) {
-                    }
+            Object.values(chunk.systems).forEach(system => {
+                ctx.fillStyle = '#fff';
 
-                    if (
-                        (system.x + chunk.x - mapData.offsetX > mapData.width / 2 ||
-                        system.x + chunk.x - mapData.offsetX < -mapData.width / 2 ||
-                        system.y + chunk.y - mapData.offsetY > mapData.height / 2 ||
-                        system.y + chunk.y - mapData.offsetY < -mapData.height / 2) &&
-                        currentSystem !== system
-                    ) return;
+                if (
+                    (system.x + chunk.x - mapData.offsetX > mapData.width / 2 ||
+                    system.x + chunk.x - mapData.offsetX < -mapData.width / 2 ||
+                    system.y + chunk.y - mapData.offsetY > mapData.height / 2 ||
+                    system.y + chunk.y - mapData.offsetY < -mapData.height / 2) &&
+                    currentSystem !== system
+                ) return;
 
-                    if (currentSystem === system) {
-                        ctx.fillStyle = '#0f0';
+                if (currentSystem === system) {
+                    ctx.fillStyle = '#0f0';
 
-                        const directionX = (system.x + chunk.x - mapData.offsetX) / Math.abs(system.x + chunk.x - mapData.offsetX);
-                        const x = Math.min(Math.abs(system.x + chunk.x - mapData.offsetX), mapData.width / 2) * directionX;
+                    const directionX = (system.x + chunk.x - mapData.offsetX) / Math.abs(system.x + chunk.x - mapData.offsetX);
+                    const x = Math.min(Math.abs(system.x + chunk.x - mapData.offsetX), mapData.width / 2) * directionX;
 
-                        const directionY = (system.y + chunk.y - mapData.offsetY) / Math.abs(system.y + chunk.y - mapData.offsetY);
-                        const y = Math.min(Math.abs(system.y + chunk.y - mapData.offsetY), mapData.height / 2) * directionY;
+                    const directionY = (system.y + chunk.y - mapData.offsetY) / Math.abs(system.y + chunk.y - mapData.offsetY);
+                    const y = Math.min(Math.abs(system.y + chunk.y - mapData.offsetY), mapData.height / 2) * directionY;
 
-                        ctx.beginPath();
-                        ctx.arc(
-                            x,
-                            y,
-                            2, 0, Math.PI * 2
-                        );
-    
-                        ctx.fill();
-                    }
-                    else {
-                        ctx.beginPath();
-                        ctx.arc(
-                            system.x + chunk.x - mapData.offsetX,
-                            system.y + chunk.y - mapData.offsetY,
-                            2, 0, Math.PI * 2
-                        );
-    
-                        ctx.fill();
-                    }
+                    ctx.beginPath();
+                    ctx.arc(
+                        x,
+                        y,
+                        2, 0, Math.PI * 2
+                    );
 
-                });
+                    ctx.fill();
+                }
+                else {
+                    ctx.beginPath();
+                    ctx.arc(
+                        system.x + chunk.x - mapData.offsetX,
+                        system.y + chunk.y - mapData.offsetY,
+                        2, 0, Math.PI * 2
+                    );
+
+                    ctx.fill();
+                }
+
+            });
             ctx.restore();
         });
     }
@@ -225,7 +257,7 @@ canvas.addEventListener('click', ({ offsetX, offsetY }) => {
 
     if (!coords.mapX) return;
 
-    if (mapData.hoveredSystem && !currentPlanet && currentSystem !== mapData.hoveredSystem) {
+    if (mapData.hoveredSystem && (isDebug || !currentPlanet) && currentSystem !== mapData.hoveredSystem) {
         enterSystem(mapData.hoveredSystem, mapData.hoveredChunk);
     }
     
@@ -375,5 +407,5 @@ function enterSystem(system, chunk) {
     }
 
     envData.current.ships.push(playerShip);
-    generateEnv(currentChunk.x, currentChunk.y);
+    generateEnv(currentChunk.x, currentChunk.y, 1);
 }

@@ -9,6 +9,10 @@ function generateName(seed) {
         if (i % 2 === 0) {
             const id = ~~(c.length * seed.unit());
             name += c[id];
+
+            if (seed.unit() > 0.5) {
+                name += 'th';
+            }
         }
         else {
             const id = ~~(v.length * seed.unit());

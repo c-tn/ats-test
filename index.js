@@ -70,7 +70,7 @@ canvas.height = 720;
 const ctx = canvas.getContext('2d');
 
 let envData = {
-    chunks: {},
+    chunks: [],
     current: {},
 };
 let bullets = [];
@@ -556,16 +556,20 @@ function popPlayerShip() {
 }
 
 function wheelActions(wheelDelta) {
-    if (mapData.isOpen && wheelDelta < -5) {
+    if (mapData.isOpen && wheelDelta < -4) {
         zoomOutMap();
+
+        if (mapData.mapType === mapTypes.chunks) {
+            centerOnCurrentSystem();
+        }
     }
-    else if (mapData.isOpen && wheelDelta > 5) {
+    else if (mapData.isOpen && wheelDelta > 4) {
         zoomInMap();
     }
-    else if (currentPlanet && wheelDelta < -5) {
+    else if (currentPlanet && wheelDelta < -4) {
         leavePlanet();
     }
-    else if (!currentPlanet && wheelDelta > 5) {
+    else if (!currentPlanet && wheelDelta > 4) {
         enterPlanet();
     }
 }
@@ -648,6 +652,7 @@ const keys = {
     a: 65,
     s: 83,
     d: 68,
+    l: 76,
     m: 77,
     space: 32,
     mouseleft: 1,
@@ -714,10 +719,21 @@ function handleKey(e) {
             changeShipState(playerShip, 'isRightRotate', value);
             break;
 
+        case keys.l:
+            log = true;
+            requestAnimationFrame(() => {
+                log = false;
+            });
+            break;
+
         case keys.m:
             mapData.isOpen = e.type === 'keyup'
                 ? !mapData.isOpen
                 : mapData.isOpen;
+
+            if (mapData.mapType === mapTypes.chunks) {
+                centerOnCurrentSystem();
+            }
 
             modalData.isVisible = false;
             break;

@@ -27,7 +27,9 @@ function init() {
     setItemsInCategories();
     generateEnv(0, 0);
 
-    currentChunk = Object.values(envData.chunks)[4];
+    const center = ~~(envData.chunks.length / 2);
+    
+    currentChunk = Object.values(envData.chunks)[center];
     currentSystem = Object.values(currentChunk.systems)[0];
 
     createSystemPlanets(currentSystem);
@@ -36,7 +38,7 @@ function init() {
 
     currentPlanet = Object.values(currentSystem.planets)[1];
 
-    envData.current = envData.chunks[currentChunk.name]
+    envData.current = envData.chunks[center]
         .systems[currentSystem.name]
         .planets[currentPlanet.name];
 

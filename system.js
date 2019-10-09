@@ -5,27 +5,61 @@ const envTypes = {
     sun: 3
 }
 
-function generateEnv(x, y) {
-    const chunkSize = config.chunkSize;
+let data = {
+    new: 0,
+    exist: 0,
+    total: 0,
+}
 
-    for (let i = x - chunkSize; i < x + chunkSize * 2; i += chunkSize) {
-        for (let j = y - chunkSize; j < chunkSize * 2; j += chunkSize) {
+function LOG_envLog(name) {
+    data.total += 1;
+
+    if (envData.chunks[name]) {
+        data.exist += 1;
+    }
+    else {
+        data.new += 1;
+    }
+}
+
+const systemRect = createRect(
+    -config.chunkSize * 1000,
+    -config.chunkSize * 1000,
+    config.chunkSize * 2000,
+    config.chunkSize * 2000
+);
+
+const systemQtree = new QuadTree(systemRect, 50);
+
+function generateEnv(x, y, range = 50) {
+    const chunkSize = config.chunkSize;
+    const startX = x - range * chunkSize;
+    const endX = x + range * chunkSize;
+
+    const startY = y - range * chunkSize;
+    const endY = y + range * chunkSize;
+
+    for (let i = startX; i <= endX; i += chunkSize) {
+        for (let j = startY; j <= endY; j += chunkSize) {
             let newChunk = {
                 x: i,
                 y: j,
-                name: '',
                 type: envTypes.chunk,
-                seed: new RNG(`${ seedValue }${ i }${ j }`),
+                seed: new RNG(`${ seed.unitString().substr(2) }${ seedValue }${ (i * seed.unit()).toString(36) }${ (j * seed.unit()).toString(36) }`),
                 systems: {}
             };
 
-            newChunk.name = `${ generateName(newChunk.seed) }`;
+            const selectRect = createRect(newChunk.x, newChunk.y, chunkSize, chunkSize);
+            const selectedChunks = systemQtree.query(selectRect);
 
-            if (envData.chunks[newChunk.name]) continue;
+            if (selectedChunks.length) continue;
+
+            const qtreePoint = createPoint(newChunk.x, newChunk.y, newChunk);
+            systemQtree.insert(qtreePoint);
 
             createChunkSystem(newChunk);
 
-            envData.chunks[newChunk.name] = newChunk;
+            envData.chunks.push(newChunk);
         }
     }
 }
