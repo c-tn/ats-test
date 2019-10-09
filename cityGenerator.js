@@ -381,8 +381,9 @@ function getLastSegments(segment, count, segments = [], isCrossed) {
 
 function createBuildingZone(segments, buildings) {
     for (let i = 0; i < segments.length; i++) {
-        const buildLength = Math.floor(seed.unit() * 1) + 1;
+        const buildLength = Math.floor(seed.unit() * 4) + 1;
         const buildWidth = 300;
+        const buildHeight = Math.floor(seed.unit() * 10) + 20;
         let counter = i;
         let build = [];
         let parallelWall = [];
@@ -416,6 +417,7 @@ function createBuildingZone(segments, buildings) {
             build.push([
                 segments[i].padding[0][0], segments[i].padding[0][1]
             ]);
+            build.height = buildHeight;
     
             buildings.push(build);
         }
@@ -492,7 +494,7 @@ function drawRoads() {
         }
     }
 }
-
+log = true;
 function drawBuildings() {
     if (envData.current.type !== envTypes.planet) return;
     
@@ -505,49 +507,64 @@ function drawBuildings() {
         for (let j = 0; j < builds.length; j++) {
             const build = builds[j];
 
-            const angle = Math.atan2(build[0][1] - playerShip.y, build[0][0] - playerShip.x) + Math.PI;
-            const offset = Math.sqrt((build[0][0] - playerShip.x)**2 + (build[0][1] - playerShip.y)**2) / 40;
-        
-            ctx.fillStyle = '#333';
-            ctx.strokeStyle = '#333';
+            ctx.fillStyle = '#444';
+            ctx.strokeStyle = '#444';
 
-            for (let k = 1; k < build.length; k++) {
-                ctx.beginPath();
-                ctx.moveTo(
-                    build[k][0] - camera.x + camera.width / 2,
-                    build[k][1] - camera.y + camera.height / 2
-                );
-                ctx.lineTo(
-                    build[k][0] - cos(angle) - camera.x + camera.width / 2,
-                    build[k][1] - sin(angle) - camera.y + camera.height / 2
-                );
-                ctx.lineTo(
-                    build[k - 1][0] - cos(angle) - camera.x + camera.width / 2,
-                    build[k - 1][1] - sin(angle) - camera.y + camera.height / 2
-                );
-                ctx.lineTo(
-                    build[k - 1][0] - cos(angle) * offset - camera.x + camera.width / 2,
-                    build[k - 1][1] - sin(angle) * offset - camera.y + camera.height / 2
-                );
-                ctx.lineTo(
-                    build[k][0] - cos(angle) * offset - camera.x + camera.width / 2,
-                    build[k][1] - sin(angle) * offset - camera.y + camera.height / 2
-                );
-                ctx.fill();
-                ctx.stroke();
-            }
-
-            ctx.fillStyle = stonePattern;
-            ctx.strokeStyle = lightStonePattern;
-            ctx.lineWidth = 1;
+            let prevAngle = Math.atan2(build[0][1] - playerShip.y, build[0][0] - playerShip.x) + Math.PI;
+            let prevOffset = Math.sqrt((build[0][0] - playerShip.x)**2 + (build[0][1] - playerShip.y)**2) / build.height;
 
             ctx.save();
-            ctx.beginPath();
             ctx.translate(
-                build[0][0] - cos(angle) * offset - camera.x + camera.width / 2,
-                build[0][1] - sin(angle) * offset - camera.y + camera.height / 2
+                build[0][0] - camera.x + camera.width / 2 - cos(prevAngle) * prevOffset,
+                build[0][1] - camera.y + camera.height / 2 - sin(prevAngle) * prevOffset
             );
-    
+            ctx.beginPath();
+
+            for (let k = 1; k < build.length; k++) {
+                let angle = Math.atan2(build[k][1] - playerShip.y, build[k][0] - playerShip.x) + Math.PI;
+                let offset = Math.sqrt((build[k][0] - playerShip.x)**2 + (build[k][1] - playerShip.y)**2) / build.height;
+
+                offset = offset < 0
+                    ? Math.max(offset, -build.height * 2)
+                    : Math.min(offset, build.height * 2);
+
+                ctx.beginPath();
+                ctx.moveTo(
+                    build[k][0] - build[0][0],
+                    build[k][1] - build[0][1]
+                );
+                ctx.lineTo(
+                    build[k - 1][0] - build[0][0],
+                    build[k - 1][1] - build[0][1]
+                );
+                ctx.lineTo(
+                    build[k - 1][0] - build[0][0] + cos(prevAngle) * prevOffset,
+                    build[k - 1][1] - build[0][1] + sin(prevAngle) * prevOffset
+                );
+                ctx.lineTo(
+                    build[k][0] - build[0][0] + cos(angle) * offset,
+                    build[k][1] - build[0][1] + sin(angle) * offset
+                );
+
+                ctx.fill();
+                ctx.stroke();
+
+                prevAngle = angle;
+                prevOffset = offset;
+            }
+
+            ctx.restore();
+
+            ctx.fillStyle = stonePattern;
+            ctx.lineWidth = 0;
+
+            ctx.save();
+            ctx.translate(
+                build[0][0] - camera.x + camera.width / 2 - cos(prevAngle) * prevOffset,
+                build[0][1] - camera.y + camera.height / 2 - sin(prevAngle) * prevOffset
+            );
+            ctx.beginPath();
+
             for (let k = 0; k < build.length; k++) {
                 ctx.lineTo(
                     build[k][0] - build[0][0],
@@ -556,12 +573,13 @@ function drawBuildings() {
             }
     
             ctx.closePath();
-            ctx.stroke();
             ctx.fill();
             ctx.restore();
         }
     }
 }
+
+
 function drawTriggers() {
     for (let i = 0; i < envData.current.triggers.length; i++) {
         const trigger = envData.current.triggers[i];
@@ -569,7 +587,11 @@ function drawTriggers() {
         const build = trigger.build;
 
         const angle = Math.atan2(build[0][1] - playerShip.y, build[0][0] - playerShip.x) + Math.PI;
-        const offset = Math.sqrt((build[0][0] - playerShip.x)**2 + (build[0][1] - playerShip.y)**2) / 40;
+        let offset = Math.sqrt((build[0][0] - playerShip.x)**2 + (build[0][1] - playerShip.y)**2) / build.height;
+
+        offset = offset < 0
+            ? Math.max(offset, -build.height * 2)
+            : Math.min(offset, build.height * 2);
 
         ctx.save();
         ctx.translate(
