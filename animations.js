@@ -12,6 +12,9 @@ function landing(direction, ship) {
         ship.flyHeight += 1;
         ship.spriteSize += 0.005;
 
+        ship.offsetX = 0;
+        ship.offsetY = 0;
+
         if (ship.flyHeight >= 40) {
             ship.flyHeight = 40;
             ship.spriteSize = 1;

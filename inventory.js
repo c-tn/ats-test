@@ -72,7 +72,7 @@ canvas.addEventListener('mouseup', ({ offsetX, offsetY, which }) => {
 
         // From inv to shop
         if (draggedCell.type !== slotTypes.shop && hoveredCell.type === slotTypes.shop) {
-            let findedCell = playerShip.currentTrigger.items.find(cell =>
+            let findedCell = playerShip.tradeWith.items.find(cell =>
                 cell.item && cell.item.name === draggedItem.name &&
                 cell.item.type === itemTypes.another
             );
@@ -87,7 +87,7 @@ canvas.addEventListener('mouseup', ({ offsetX, offsetY, which }) => {
                     findedCell = hoveredCell;
                 }
                 else {
-                    findedCell = playerShip.currentTrigger.items.find(cell => !cell.item);
+                    findedCell = playerShip.tradeWith.items.find(cell => !cell.item);
                 }
 
                 findedCell.item = draggedItem;
@@ -121,7 +121,7 @@ canvas.addEventListener('mouseup', ({ offsetX, offsetY, which }) => {
                         findedCell = hoveredCell;
                     }
                     else {
-                        findedCell = playerShip.currentTrigger.items.find(cell => !cell.item);
+                        findedCell = playerShip.tradeWith.items.find(cell => !cell.item);
                     }
 
                     findedCell.item = draggedItem;
@@ -197,7 +197,7 @@ canvas.addEventListener('mouseup', ({ offsetX, offsetY, which }) => {
         }
         // Sell another items
         else if (hoveredCell.type === slotTypes.inventory && hoveredItem.type === itemTypes.another) {
-            let findedCell = playerShip.currentTrigger.items.find(cell => cell.item && cell.item.name === hoveredItem.name);
+            let findedCell = playerShip.tradeWith.items.find(cell => cell.item && cell.item.name === hoveredItem.name);
 
             if (findedCell) {
                 findedCell.item.count += 1;
@@ -210,7 +210,7 @@ canvas.addEventListener('mouseup', ({ offsetX, offsetY, which }) => {
                 }
             }
             else {
-                findedCell = playerShip.currentTrigger.items.find(cell => !cell.item && cell.type === slotTypes.shop);
+                findedCell = playerShip.tradeWith.items.find(cell => !cell.item && cell.type === slotTypes.shop);
 
                 hoveredItem.count = 1;
                 findedCell.item = hoveredItem;
@@ -219,7 +219,7 @@ canvas.addEventListener('mouseup', ({ offsetX, offsetY, which }) => {
             }
         }
         else if (hoveredCell.type !== slotTypes.shop && hoveredItem.type === itemTypes.weapon) {
-            let findedCell = playerShip.currentTrigger.items.find(cell => !cell.item && cell.type === slotTypes.shop);
+            let findedCell = playerShip.tradeWith.items.find(cell => !cell.item && cell.type === slotTypes.shop);
 
             if (findedCell) {
                 findedCell.item = hoveredItem;
@@ -239,9 +239,9 @@ function getCellByMouseCoords({ x, y }) {
         y < cell.y + inventoryData.inventoryOffsetY + inventoryData.cellSize
     );
 
-    if (!playerShip.currentTrigger || !playerShip.currentTrigger.isOpen || res) return res;
+    if (!playerShip.tradeWith || !playerShip.tradeWith.isOpen || res) return res;
 
-    return playerShip.currentTrigger.items.find(cell =>
+    return playerShip.tradeWith.items.find(cell =>
         x > cell.x - inventoryData.inventoryOffsetX &&
         x < cell.x - inventoryData.inventoryOffsetX + inventoryData.cellSize &&
         y > cell.y - inventoryData.inventoryOffsetY &&
@@ -430,7 +430,7 @@ function createInventory(ship, level) {
 }
 
 function drawShop() {
-    if (!playerShip.currentTrigger || !playerShip.currentTrigger.isOpen) return;
+    if (!playerShip.tradeWith || !playerShip.tradeWith.isOpen) return;
 
     ctx.fillStyle = 'rgba(0, 0, 0, .5)';
 
@@ -441,7 +441,7 @@ function drawShop() {
         inventoryData.height
     );
 
-    playerShip.currentTrigger.items.forEach(cell => {
+    playerShip.tradeWith.items.forEach(cell => {
         if (cell.item) {
             ctx.fillStyle = 'rgba(150, 150, 150, .5)';
         }
@@ -525,7 +525,7 @@ function createShopStuff(shop) {
             x,
             y,
             type: slotTypes.shop,
-            index: playerShip.currentTrigger.items.length,
+            index: shop.items.length,
             item
         });
             

@@ -160,8 +160,8 @@ function createShip(isRandom) {
     let ship = {
         id: seedNum,
         sprite: null,
-        x: isRandom ? config.planetWidth * seed.unit() - config.planetWidth / 2 : 0,
-        y: isRandom ? config.planetHeight * seed.unit() - config.planetHeight / 2 : 0,
+        x: config.planetWidth * seed.unit() - config.planetWidth / 2,
+        y: config.planetHeight * seed.unit() - config.planetHeight / 2,
         currentAngle: 0,
         rotateSpeed: 0.05,
         currentSpeed: 0,
@@ -169,13 +169,13 @@ function createShip(isRandom) {
         velocity: 0.1,
         hp,
         money: 100,
+
         flyHeight: 40,
         currentAnimation: animationTypes.idle,
         spriteSize: 1,
+        isLanding: false,
 
         inventory: [],
-
-        currentTrigger: null,
 
         canControl: true,
         isSlowDown: false,
@@ -183,7 +183,9 @@ function createShip(isRandom) {
         isForward: false,
         isBackward: false,
         isLeftRotate: false,
-        isRightRotate: false
+        isRightRotate: false,
+
+        callTrigger
     }
 
     ship.sprite = generateSprite({
@@ -274,10 +276,6 @@ const imageAngle = 90 * Math.PI / 180;
 
 function drawShips() {
     envData.current.ships = envData.current.ships.filter(ship => {
-        if (envData.current.type === envTypes.planet) {
-            setShadowsParam(ship.flyHeight, ship.flyHeight, 3, 'rgba(0, 0, 0, .3)');
-        }
-
         switch(ship.currentAnimation) {
             case animationTypes.landingIn:
                 landing(true, ship);
@@ -286,6 +284,12 @@ function drawShips() {
                 landing(false, ship);
                 break;
             default: break;
+        }
+
+        if (ship.isLanding) return ship;
+
+        if (envData.current.type === envTypes.planet) {
+            setShadowsParam(ship.flyHeight, ship.flyHeight, 3, 'rgba(0, 0, 0, .3)');
         }
 
         ctx.save();
@@ -430,7 +434,7 @@ function updateShip() {
                     cell.item.lastShot = now;
                 }
             });
-        }        
+        }
 
         ship.x += Math.cos(ship.currentAngle) * ship.currentSpeed;
         ship.y += Math.sin(ship.currentAngle) * ship.currentSpeed;
@@ -529,7 +533,6 @@ function gameLoop() {
 
     updateShip();
     updateCameraData();
-    checkTriggers();
 
     drawLandscape();
     drawRoads();
@@ -659,8 +662,14 @@ const keys = {
     mouseright: 3
 }
 
-function useTrigger() {
-    playerShip.currentTrigger && playerShip.currentTrigger.action();
+function callTrigger() {
+    const trigger = checkTriggers(this);
+
+    if (!trigger) return;
+    
+    if (trigger.type === triggerTypes.shop) {
+        shopAction(this, trigger);
+    }
 }
 
 function changeShipState(ship, prop, value) {
@@ -686,7 +695,7 @@ function handleKey(e) {
 
         case keys.e:
             e.type === 'keyup'
-                ? useTrigger()
+                ? playerShip.callTrigger()
                 : null;
             break;
 
@@ -721,6 +730,11 @@ function handleKey(e) {
 
         case keys.l:
             log = true;
+            
+            isDebug = e.type === 'keyup'
+                ? !isDebug
+                : isDebug;
+
             requestAnimationFrame(() => {
                 log = false;
             });
@@ -842,8 +856,8 @@ function showModal() {
     );
 }
 
-function tp({ x, y }) {
-    playerShip.x = x;
-    playerShip.y = y;
-    playerShip.currentSpeed = 0;
+function tp(x, y, ship) {
+    ship.x = x;
+    ship.y = y;
+    ship.currentSpeed = 0;
 }

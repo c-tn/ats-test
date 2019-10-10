@@ -1,4 +1,4 @@
-let isDebug = true;
+let isDebug = false;
 let log = false;
 
 const triggerTypes = {
@@ -50,8 +50,6 @@ function createCities(planet) {
             padding: []
         }
 
-        playerShip.x = startX;
-        playerShip.y = startY;
 
         const segments = [];
 
@@ -69,13 +67,16 @@ function createCities(planet) {
         const buildings = [];
         createBuildingZone(segments, buildings);
 
-        const shops = [];
-        createTriggers(buildings, seed, shops, triggerTypes.shop);
+        const triggers = [];
+        createTriggers(buildings, seed, triggers, triggerTypes.shop);
+
+        playerShip.x = triggers[0].pos[0];
+        playerShip.y = triggers[0].pos[1]
 
         planet.cities.push(cityData);
         planet.roads.push(segments);
         planet.buildings.push(buildings);
-        planet.triggers.push(...shops);
+        planet.triggers.push(...triggers);
     }
 }
 
@@ -508,8 +509,8 @@ function drawBuildings() {
         for (let j = 0; j < builds.length; j++) {
             const build = builds[j];
 
-            ctx.fillStyle = '#444';
-            ctx.strokeStyle = '#444';
+            ctx.fillStyle = '#222';
+            ctx.strokeStyle = '#222';
 
             if (isDebug) {
                 ctx.fillStyle = 'rgba(200, 0, 0, .1)';
@@ -564,6 +565,9 @@ function drawBuildings() {
             ctx.fillStyle = stonePattern;
             ctx.lineWidth = 0;
 
+            prevAngle = Math.atan2(build[0][1] - playerShip.y, build[0][0] - playerShip.x) + Math.PI;
+            prevOffset = Math.sqrt((build[0][0] - playerShip.x)**2 + (build[0][1] - playerShip.y)**2) / build.height;
+
             ctx.save();
             ctx.translate(
                 build[0][0] - camera.x + camera.width / 2 - cos(prevAngle) * prevOffset,
@@ -617,6 +621,25 @@ function drawTriggers() {
             -citySprites.landing.width / 2,
             -citySprites.landing.height / 2
         );
+
+        const ship = trigger.owner;
+
+        ctx.rotate(-trigger.angle);
+
+        if (ship) {
+            const w = ship.sprite.width * ship.spriteSize;
+            const h = ship.sprite.height * ship.spriteSize;
+
+            ctx.rotate(ship.currentAngle + Math.PI / 2);
+    
+            ctx.drawImage(
+                ship.sprite,
+                -w / 2,
+                -h / 2,
+                w,
+                h
+            );
+        }
         ctx.restore();
     }
 }
@@ -675,27 +698,38 @@ function createShopLandings(buildings, seed, triggers) {
             owner: null,
             items: buildings[buildId].items,
             isOpen: false,
-            build: buildings[buildId]
-        };
-
-        shop.action = () => {
-            if (playerShip.currentSpeed !== 0 || shop.owner && shop.owner !== playerShip) return;
-
-            if (!shop.isOpen) {
-                playerShip.canControl = false;
-                playerShip.currentAnimation = animationTypes.landingIn;
-                shop.owner = playerShip;
-                openShop(shop);
-            }
-            else {
-                openShop(shop);
-                playerShip.canControl = true;
-                playerShip.currentAnimation = animationTypes.landingOut;
-                shop.owner = null;
-            }
+            build: buildings[buildId],
+            action: null
         };
 
         triggers.push(shop);
+    }
+}
+
+function shopAction(ship, shop) {
+    if (ship.currentSpeed !== 0 || shop.owner && shop.owner !== ship) return;
+
+    ship.tradeWith = shop;
+
+    if (!shop.owner) {
+        ship.isLanding = true;
+        ship.canControl = false;
+        ship.currentAnimation = animationTypes.landingIn;
+        shop.owner = ship;
+
+        if (ship === playerShip) {
+            openShop(shop);
+        }
+    }
+    else {
+        ship.isLanding = false;
+        ship.canControl = true;
+        ship.currentAnimation = animationTypes.landingOut;
+        shop.owner = null;
+
+        if (ship === playerShip) {
+            openShop(shop);
+        }
     }
 }
 
@@ -711,17 +745,18 @@ function openShop(shop) {
 }
 
 
-function checkTriggers() {
+function checkTriggers(ship) {
     if (!envData.current.triggers) return;
 
-    playerShip.currentTrigger = envData.current.triggers.find(trigger => {
+    const trigger = envData.current.triggers.find(trigger => {
         let inside = false;
 
-        const d = Math.sqrt((playerShip.x - trigger.pos[0])**2 + (playerShip.y - trigger.pos[1])**2);
+        const d = Math.sqrt((ship.x - trigger.pos[0])**2 + (ship.y - trigger.pos[1])**2);
 
         if (d < citySprites.landing.width / 4) {
             inside = true;
         }
+
         // Check in rect
         // for (let i = 1; i < trigger.zone.length; j = i++) {
         //     const x1 = trigger.zone[i - 1][0];
@@ -736,6 +771,8 @@ function checkTriggers() {
 
         return inside;   
     });
+    
+    return trigger;
 }
 
 function pushShips(planet) {
