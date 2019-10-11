@@ -648,6 +648,11 @@ function drawTriggers() {
             const w = ship.sprite.width * ship.spriteSize;
             const h = ship.sprite.height * ship.spriteSize;
 
+            const offsetX = ship.x - pos[0];
+            const offsetY = ship.y - pos[1];
+
+            ctx.translate(offsetX, offsetY);
+
             ctx.rotate(ship.currentAngle + Math.PI / 2);
     
             ctx.drawImage(
