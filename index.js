@@ -156,6 +156,7 @@ function createShip(isRandom) {
     const level = isRandom ? ~~(seed.unit() * config.itemsLevel.length) : 0;
     const data = config.itemsLevel[level];
     const hp = ~~(data.health.mid * seed.unit()) + data.health.min;
+    const money = ~~(300 * seed.unit());
 
     let ship = {
         id: seedNum,
@@ -168,7 +169,7 @@ function createShip(isRandom) {
         maxSpeed: 20,
         velocity: 0.1,
         hp,
-        money: 100,
+        money,
 
         flyHeight: 40,
         currentAnimation: animationTypes.idle,
@@ -185,6 +186,7 @@ function createShip(isRandom) {
         isLeftRotate: false,
         isRightRotate: false,
 
+        tradeWith: null,
         callTrigger
     }
 
@@ -289,7 +291,14 @@ function drawShips() {
         if (ship.isLanding) return ship;
 
         if (envData.current.type === envTypes.planet) {
-            setShadowsParam(ship.flyHeight, ship.flyHeight, 3, 'rgba(0, 0, 0, .3)');
+            const angle = Math.atan2(currentPlanet.y - 0, currentPlanet.x - 0) + Math.PI;
+
+            setShadowsParam(
+                cos(angle - Math.PI) * 50,
+                sin(angle - Math.PI) * 50,
+                3,
+                'rgba(0, 0, 0, .3)'
+            );
         }
 
         ctx.save();
@@ -484,6 +493,7 @@ function drawBullets() {
             bullet.x < ship.x + ship.sprite.width / 2 &&
             bullet.y > ship.y - ship.sprite.height / 2 &&
             bullet.y < ship.y + ship.sprite.height / 2 &&
+            !ship.isLanding &&
             ship.id !== bullet.ownerId
         );
 

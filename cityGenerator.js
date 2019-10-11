@@ -1,5 +1,6 @@
 let isDebug = false;
 let log = false;
+let logBuild = null;
 
 const triggerTypes = {
     shop: 0
@@ -71,12 +72,26 @@ function createCities(planet) {
         createTriggers(buildings, seed, triggers, triggerTypes.shop);
 
         playerShip.x = triggers[0].pos[0];
-        playerShip.y = triggers[0].pos[1]
+        playerShip.y = triggers[0].pos[1];
+
+        logBuild = triggers[0]
+
+        clearSegmets(segments);
 
         planet.cities.push(cityData);
         planet.roads.push(segments);
         planet.buildings.push(buildings);
         planet.triggers.push(...triggers);
+    }
+}
+
+function clearSegmets(segments) {
+    for (let i = 0; i < segments.length; i++) {
+        const segment = segments[i];
+
+        delete segment.nextSegment;
+        delete segment.prevSegment;
+        delete segment.cross;
     }
 }
 
@@ -509,6 +524,17 @@ function drawBuildings() {
         for (let j = 0; j < builds.length; j++) {
             const build = builds[j];
 
+            ctx.fillStyle = 'rgba(0, 0, 0, .2)';
+
+            if (isDebug) {
+                ctx.fillStyle = 'rgba(0, 0, 0, .1)';
+                ctx.strokeStyle = 'rgba(0, 0, 0, .1)';
+            }
+
+            // Draw walls
+            let prevAngle = Math.atan2(build[0][1] - playerShip.y, build[0][0] - playerShip.x) + Math.PI;
+            let prevOffset = Math.sqrt((build[0][0] - playerShip.x)**2 + (build[0][1] - playerShip.y)**2) / build.height;
+
             ctx.fillStyle = '#222';
             ctx.strokeStyle = '#222';
 
@@ -516,16 +542,6 @@ function drawBuildings() {
                 ctx.fillStyle = 'rgba(200, 0, 0, .1)';
                 ctx.strokeStyle = '#c80000';
             }
-
-            let prevAngle = Math.atan2(build[0][1] - playerShip.y, build[0][0] - playerShip.x) + Math.PI;
-            let prevOffset = Math.sqrt((build[0][0] - playerShip.x)**2 + (build[0][1] - playerShip.y)**2) / build.height;
-
-            ctx.save();
-            ctx.translate(
-                build[0][0] - camera.x + camera.width / 2 - cos(prevAngle) * prevOffset,
-                build[0][1] - camera.y + camera.height / 2 - sin(prevAngle) * prevOffset
-            );
-            ctx.beginPath();
 
             for (let k = 1; k < build.length; k++) {
                 let angle = Math.atan2(build[k][1] - playerShip.y, build[k][0] - playerShip.x) + Math.PI;
@@ -537,20 +553,20 @@ function drawBuildings() {
 
                 ctx.beginPath();
                 ctx.moveTo(
-                    build[k][0] - build[0][0],
-                    build[k][1] - build[0][1]
+                    build[k][0] - camera.x + camera.width / 2,
+                    build[k][1] - camera.y + camera.height / 2
                 );
                 ctx.lineTo(
-                    build[k - 1][0] - build[0][0],
-                    build[k - 1][1] - build[0][1]
+                    build[k - 1][0] - camera.x + camera.width / 2,
+                    build[k - 1][1] - camera.y + camera.height / 2
                 );
                 ctx.lineTo(
-                    build[k - 1][0] - build[0][0] + cos(prevAngle) * prevOffset,
-                    build[k - 1][1] - build[0][1] + sin(prevAngle) * prevOffset
+                    build[k - 1][0] - cos(prevAngle) * prevOffset - camera.x + camera.width / 2,
+                    build[k - 1][1] - sin(prevAngle) * prevOffset - camera.y + camera.height / 2
                 );
                 ctx.lineTo(
-                    build[k][0] - build[0][0] + cos(angle) * offset,
-                    build[k][1] - build[0][1] + sin(angle) * offset
+                    build[k][0] - cos(angle) * offset - camera.x + camera.width / 2,
+                    build[k][1] - sin(angle) * offset - camera.y + camera.height / 2
                 );
 
                 ctx.fill();
@@ -560,26 +576,24 @@ function drawBuildings() {
                 prevOffset = offset;
             }
 
-            ctx.restore();
-
+            // Draw roof
             ctx.fillStyle = stonePattern;
             ctx.lineWidth = 0;
 
-            prevAngle = Math.atan2(build[0][1] - playerShip.y, build[0][0] - playerShip.x) + Math.PI;
-            prevOffset = Math.sqrt((build[0][0] - playerShip.x)**2 + (build[0][1] - playerShip.y)**2) / build.height;
-
             ctx.save();
-            ctx.translate(
-                build[0][0] - camera.x + camera.width / 2 - cos(prevAngle) * prevOffset,
-                build[0][1] - camera.y + camera.height / 2 - sin(prevAngle) * prevOffset
-            );
             ctx.beginPath();
 
             for (let k = 0; k < build.length; k++) {
+                let angle = Math.atan2(build[k][1] - playerShip.y, build[k][0] - playerShip.x) + Math.PI;
+                let offset = Math.sqrt((build[k][0] - playerShip.x)**2 + (build[k][1] - playerShip.y)**2) / build.height;
+
                 ctx.lineTo(
-                    build[k][0] - build[0][0],
-                    build[k][1] - build[0][1]
+                    build[k][0] - cos(angle) * offset - camera.x + camera.width / 2,
+                    build[k][1] - sin(angle) * offset - camera.y + camera.height / 2
                 );
+
+                prevAngle = angle;
+                prevOffset = offset;
             }
 
             if (isDebug) {
@@ -588,6 +602,10 @@ function drawBuildings() {
             }
 
             ctx.closePath();
+            ctx.translate(
+                build[0][0] - cos(prevAngle) * prevOffset - camera.x + camera.width / 2,
+                build[0][1] - sin(prevAngle) * prevOffset - camera.y + camera.height / 2
+            );
             ctx.fill();
             ctx.restore();
         }
@@ -736,6 +754,7 @@ function shopAction(ship, shop) {
 function openShop(shop) {
     shop.isOpen = !shop.isOpen;
     inventoryData.isOpen = shop.isOpen;
+    inventoryData.hoveredCell = null;
     inventoryData.inventoryOffsetY = inventoryData.height / 2;
     changeInventoryPrice();
 

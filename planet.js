@@ -47,10 +47,7 @@ function drawPlanets() {
                     planet.y - camera.y + camera.height / 2 - planet.sprite.height / 2
                 );
 
-                ctx.drawImage(
-                    planet.sprite,
-                    0, 0
-                );
+                ctx.drawImage(planet.sprite, 0, 0);
             ctx.restore();
         }
     });

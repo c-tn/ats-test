@@ -6,9 +6,17 @@ canvas.height = 1080;
 
 const { cos, sin } = Math;
 
-let sun = {
+let camera = {
     x: 0,
     y: 0,
+}
+
+let sun = {
+    angle: Math.PI,
+    x: 0,
+    y: 0,
+    r: 500,
+    s: 0.01
 }
 
 let figures = [
@@ -37,12 +45,26 @@ let figures = [
 
 function loop() {
     ctx.lineWidth = 4;
-    ctx.fillStyle = '#000';
+    ctx.fillStyle = '#fff';
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    ctx.fillStyle = '#fff';
+    ctx.fillStyle = '#ff0';
     ctx.strokeStyle = '#fff';
+
+    ctx.beginPath();
+    ctx.arc(
+        sun.x,
+        sun.y,
+        20,
+        0,
+        Math.PI * 2
+    );
+    ctx.fill();
+
+    sun.angle += sun.s;
+    sun.x = cos(sun.angle) * sun.r + canvas.width / 2;
+    sun.y = sin(sun.angle) * sun.r + canvas.height / 2;
 
     drawBuild();
 
@@ -54,12 +76,40 @@ function drawBuild() {
 
     const f = figures[0];
 
-    const a = Math.atan2(f.y1 - sun.y, f.x1 - sun.x) + Math.PI;
-    const o = Math.sqrt((f.x1 - sun.x)**2 + (f.y1 - sun.y)**2) / 50;
+    const a = Math.atan2(f.y1 - camera.y, f.x1 - camera.x) + Math.PI;
+    const o = Math.sqrt((f.x1 - camera.x)**2 + (f.y1 - camera.y)**2) / 50;
 
     figures.forEach(line => {
         ctx.beginPath();
+        ctx.moveTo(line.x1, line.y1);
 
+        const so = Math.sqrt((canvas.width / 2 - sun.x)**2 + (canvas.height / 2 - sun.y)**2) / sun.r * 50;
+        const sa = Math.atan2(canvas.height / 2 - sun.y, canvas.width / 2 - sun.x);
+
+        ctx.lineTo(
+            line.x1 - cos(sa - Math.PI),
+            line.y1 - sin(sa - Math.PI)
+        );
+        ctx.lineTo(
+            line.x2 - cos(sa - Math.PI),
+            line.y2 - sin(sa - Math.PI)
+        );
+        ctx.lineTo(
+            line.x2 - cos(sa - Math.PI) * so,
+            line.y2 - sin(sa - Math.PI) * so
+        );
+        ctx.lineTo(
+            line.x1 - cos(sa - Math.PI) * so,
+            line.y1 - sin(sa - Math.PI) * so
+        );
+
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(0, 0, 0, .1)';
+        ctx.fill();
+    });
+
+    figures.forEach(line => {
+        ctx.beginPath();
         ctx.moveTo(line.x1, line.y1);
         ctx.lineTo(
             line.x1 - cos(a),
@@ -79,7 +129,7 @@ function drawBuild() {
         );
 
         ctx.fillStyle = '#555';
-        ctx.strokeStyle = '#444';
+        ctx.strokeStyle = '#555';
         ctx.fill();
         ctx.stroke();
     });
@@ -109,8 +159,14 @@ canvas.addEventListener('mousemove', ({ offsetX, offsetY }) => {
     const x = offsetX / window.innerWidth * canvas.width;
     const y = offsetY / window.innerHeight * canvas.height;
 
-    sun.x = x;
-    sun.y = y;
+    camera.x = x;
+    camera.y = y;
+});
+
+canvas.addEventListener('click', () => {
+    sun.s = sun.s === 0
+        ? 0.01
+        : 0;
 });
 
 ctx.font = '20px Arial';
