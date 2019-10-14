@@ -97,38 +97,34 @@ function drawMap() {
                     (system.x + chunk.x - mapData.offsetX > mapData.width / 2 ||
                     system.x + chunk.x - mapData.offsetX < -mapData.width / 2 ||
                     system.y + chunk.y - mapData.offsetY > mapData.height / 2 ||
-                    system.y + chunk.y - mapData.offsetY < -mapData.height / 2) &&
-                    currentSystem !== system
+                    system.y + chunk.y - mapData.offsetY < -mapData.height / 2)
                 ) return;
 
+                if (chunk.owner) {
+                    ctx.fillStyle = chunk.owner.color;
+                }
                 if (currentSystem === system) {
                     ctx.fillStyle = '#0f0';
+                    ctx.strokeStyle = '#0f0';
 
-                    const directionX = (system.x + chunk.x - mapData.offsetX) / Math.abs(system.x + chunk.x - mapData.offsetX);
-                    const x = Math.min(Math.abs(system.x + chunk.x - mapData.offsetX), mapData.width / 2) * directionX;
-
-                    const directionY = (system.y + chunk.y - mapData.offsetY) / Math.abs(system.y + chunk.y - mapData.offsetY);
-                    const y = Math.min(Math.abs(system.y + chunk.y - mapData.offsetY), mapData.height / 2) * directionY;
-
-                    ctx.beginPath();
-                    ctx.arc(
-                        x,
-                        y,
-                        2, 0, Math.PI * 2
-                    );
-
-                    ctx.fill();
-                }
-                else {
                     ctx.beginPath();
                     ctx.arc(
                         system.x + chunk.x - mapData.offsetX,
                         system.y + chunk.y - mapData.offsetY,
-                        2, 0, Math.PI * 2
+                        10, 0, Math.PI * 2
                     );
 
-                    ctx.fill();
+                    ctx.stroke();
                 }
+
+                ctx.beginPath();
+                ctx.arc(
+                    system.x + chunk.x - mapData.offsetX,
+                    system.y + chunk.y - mapData.offsetY,
+                    2, 0, Math.PI * 2
+                );
+
+                ctx.fill();
 
             });
             ctx.restore();
@@ -150,7 +146,7 @@ function drawMap() {
 
                 ctx.strokeStyle = '#555';
                 ctx.fillStyle = '#fff';
-
+                
                 if (planet === currentPlanet) {
                     ctx.fillStyle = '#0f0';
                 }

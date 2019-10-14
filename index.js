@@ -215,13 +215,12 @@ async function startGame() {
     
     envData.currentTexture = await createPlanetTexture(currentPlanet);
 
-    pushShips(currentPlanet);
     createCities(currentPlanet);
 
     currentPlanet.ships.push(playerShip);
 }
 
-const seedValue = '0v02sysvbqtr' || Math.random().toString(36).substr(2);
+const seedValue = 'ux25n5gdd1a' || Math.random().toString(36).substr(2);
 console.log(seedValue);
 const seed = new RNG(seedValue);
 
@@ -616,7 +615,6 @@ async function enterPlanet() {
     playerShip.y = 0;
 
     if (!currentPlanet.ships) {
-        pushShips(currentPlanet);
         createCities(currentPlanet);
     }
 

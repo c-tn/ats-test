@@ -25,7 +25,9 @@ let currentPlanet = null;
 
 function init() {
     setItemsInCategories();
+    generateReces();
     generateEnv(0, 0);
+    populateRaces();
 
     const center = ~~(envData.chunks.length / 2);
     

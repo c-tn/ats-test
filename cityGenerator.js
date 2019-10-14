@@ -705,7 +705,7 @@ function createShopLandings(buildings, seed, triggers) {
 
     const landingsCount = ~~(d / w);
 
-    buildings[buildId].items = [];
+    buildings[buildId].inventory = [];
 
     for (let i = 0; i < landingsCount; i++) {
         const pos = [
@@ -719,7 +719,7 @@ function createShopLandings(buildings, seed, triggers) {
             pos,
             angle,
             owner: null,
-            items: buildings[buildId].items,
+            inventory: buildings[buildId].inventory,
             isOpen: false,
             build: buildings[buildId],
             action: null
@@ -763,7 +763,7 @@ function openShop(shop) {
     inventoryData.inventoryOffsetY = inventoryData.height / 2;
     changeInventoryPrice();
 
-    if (!shop.items.length) {
+    if (!shop.inventory.length) {
         createShopStuff(shop);
     }
 }
@@ -797,17 +797,6 @@ function checkTriggers(ship) {
     });
     
     return trigger;
-}
-
-function pushShips(planet) {
-    const seed = new RNG(planet.seed);
-    const shipsCount = Math.floor(seed.unit() * 10);
-
-    planet.ships = [];
-
-    for (let i = 0; i < shipsCount; i++) {
-        planet.ships.push(createShip(true));
-    }
 }
 
 function createLandings() {

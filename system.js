@@ -5,23 +5,6 @@ const envTypes = {
     sun: 3
 }
 
-let data = {
-    new: 0,
-    exist: 0,
-    total: 0,
-}
-
-function LOG_envLog(name) {
-    data.total += 1;
-
-    if (envData.chunks[name]) {
-        data.exist += 1;
-    }
-    else {
-        data.new += 1;
-    }
-}
-
 const systemRect = createRect(
     -config.chunkSize * 1000,
     -config.chunkSize * 1000,
@@ -46,7 +29,8 @@ function generateEnv(x, y, range = 50) {
                 y: j,
                 type: envTypes.chunk,
                 seed: new RNG(`${ seed.unitString().substr(2) }${ seedValue }${ (i * seed.unit()).toString(36) }${ (j * seed.unit()).toString(36) }`),
-                systems: {}
+                systems: {},
+                owner: null
             };
 
             const selectRect = createRect(newChunk.x, newChunk.y, chunkSize, chunkSize);
@@ -73,7 +57,6 @@ function createChunkSystem(chunk) {
             y: chunk.seed.unit() * config.chunkSize,
             name: `${ generateName(chunk.seed) }`,
             type: envTypes.system,
-            parent: chunk.name,
             seed: new RNG(chunk.seed.unitString()),
             isOpen: false,
             planets: {},
@@ -107,7 +90,6 @@ function createSystemPlanets(system) {
         type: envTypes.sun,
 
         name: system.name,
-        parent: system.name,
         seed: system.seed.unitString(),
         color: {
             r: 0.9,
@@ -131,11 +113,11 @@ function createSystemPlanets(system) {
 
             type: envTypes.planet,
             name: generateName(system.seed),
-            parent: system.name,
             seed: system.seed.unitString(),
             color: textureColors[colorId],
             cities: [],
-            triggers: []
+            triggers: [],
+            ships: []
         };
 
         newPlanet.x = Math.cos(newPlanet.currentAngle) * newPlanet.r;

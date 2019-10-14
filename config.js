@@ -8,6 +8,8 @@ const config = {
     angleOffset: 25,
     planetWidth: 200000,
     planetHeight: 100000,
+    avgRaceCount: 6,
+    avgRaceControlRadius: 700,
     itemsLevel: [
         {
             damage: {

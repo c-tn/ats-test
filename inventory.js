@@ -72,62 +72,20 @@ canvas.addEventListener('mouseup', ({ offsetX, offsetY, which }) => {
 
         // From inv to shop
         if (draggedCell.type !== slotTypes.shop && hoveredCell.type === slotTypes.shop) {
-            let findedCell = playerShip.tradeWith.items.find(cell =>
-                cell.item && cell.item.name === draggedItem.name &&
-                cell.item.type === itemTypes.another
-            );
+            addItemToInventory(playerShip.tradeWith, draggedItem, slotTypes.shop);
 
-            if (findedCell) {
-                findedCell.item.count += draggedItem.count;
-                draggedCell.item = null;
-                playerShip.money += draggedItem.count * draggedItem.price;
-            }
-            else {
-                if (!hoveredCell.item) {
-                    findedCell = hoveredCell;
-                }
-                else {
-                    findedCell = playerShip.tradeWith.items.find(cell => !cell.item);
-                }
-
-                findedCell.item = draggedItem;
-                draggedCell.item = null;
-                playerShip.money += draggedItem.price * (draggedItem.count || 1);
-            }
+            draggedCell.item = null;
+            playerShip.money += draggedItem.price * (draggedItem.count || 1);
         }
         // From shop to inv
         else if (draggedCell.type === slotTypes.shop && hoveredCell.type !== slotTypes.shop) {
-            // Weapon
-            if (!hoveredCell.item && playerShip.money > draggedItem.price && draggedItem.type === itemTypes.weapon) {
-                hoveredCell.item = draggedItem;
+            const totalPrice = draggedItem.price * (draggedItem.count || 1);
+
+            if (playerShip.money >= totalPrice) {
+                addItemToInventory(playerShip, draggedItem, slotTypes.inventory);
+
                 draggedCell.item = null;
-                playerShip.money -= draggedItem.price;
-            }
-            // Another
-            else if (draggedItem.type === itemTypes.another && hoveredCell.type !== slotTypes.weapons) {
-                let findedCell = playerShip.inventory.find(cell => 
-                    cell.item && cell.item.name === draggedItem.name
-                );
-
-                const totalPrice = draggedItem.price * (draggedItem.count || 1);
-
-                if (findedCell && playerShip.money > totalPrice) {
-                    findedCell.item.count += draggedItem.count;
-                    draggedCell.item = null;
-                    playerShip.money -= totalPrice;
-                }
-                else if (playerShip.money > totalPrice){
-                    if (!hoveredCell.item) {
-                        findedCell = hoveredCell;
-                    }
-                    else {
-                        findedCell = playerShip.tradeWith.items.find(cell => !cell.item);
-                    }
-
-                    findedCell.item = draggedItem;
-                    draggedCell.item = null;
-                    playerShip.money -= totalPrice;
-                }
+                playerShip.money -= totalPrice;
             }
         }
         // From inv to inv
@@ -163,70 +121,45 @@ canvas.addEventListener('mouseup', ({ offsetX, offsetY, which }) => {
 
         // Buy another items
         if (hoveredCell.type === slotTypes.shop && playerShip.money > hoveredItem.price && hoveredItem.type === itemTypes.another) {
-            let findedCell = playerShip.inventory.find(cell => cell.item && cell.item.name === hoveredItem.name);
+            addItemToInventory(playerShip, { ...hoveredItem, count: 1 }, slotTypes.inventory);
 
-            if (findedCell) {
-                findedCell.item.count += 1;
-                hoveredCell.item.count -= 1;
-                playerShip.money -= hoveredItem.price;
+            hoveredCell.item.count -= 1;
+            playerShip.money -= hoveredItem.price;
 
-                if (hoveredCell.item.count <= 0) {
-                    hoveredCell.item = null;
-                    inventoryData.hoveredCell = null;
-                }
-            }
-            else {
-                findedCell = playerShip.inventory.find(cell => !cell.item && cell.type === slotTypes.inventory);
-
-                hoveredItem.count = 1;
-                findedCell.item = hoveredItem;
-                hoveredCell.item.count -= 1;
-                playerShip.money -= hoveredItem.price;
+            if (hoveredCell.item.count <= 0) {
+                hoveredCell.item = null;
+                inventoryData.hoveredCell = null;
             }
         }
         // Buy weapons
         else if (hoveredCell.type === slotTypes.shop && playerShip.money > hoveredItem.price && hoveredItem.type === itemTypes.weapon) {
-            let findedCell = playerShip.inventory.find(cell => !cell.item && cell.type === slotTypes.inventory);
+            addItemToInventory(playerShip, hoveredItem, slotTypes.weapons);
 
-            if (findedCell) {
-                findedCell.item = hoveredItem;
-                hoveredCell.item = null;
-                playerShip.money -= hoveredItem.price;
-                inventoryData.hoveredCell = null;
-            }
+            playerShip.money -= hoveredItem.price;
+
+            hoveredCell.item = null;
+            inventoryData.hoveredCell = null;
         }
         // Sell another items
         else if (hoveredCell.type === slotTypes.inventory && hoveredItem.type === itemTypes.another) {
-            let findedCell = playerShip.tradeWith.items.find(cell => cell.item && cell.item.name === hoveredItem.name);
+            addItemToInventory(playerShip.tradeWith, { ...hoveredItem, count: 1 }, slotTypes.shop);
+            
+            hoveredCell.item.count -= 1;
+            playerShip.money += hoveredItem.price;
 
-            if (findedCell) {
-                findedCell.item.count += 1;
-                hoveredCell.item.count -= 1;
-                playerShip.money += hoveredItem.price;
-
-                if (hoveredCell.item.count <= 0) {
-                    hoveredCell.item = null;
-                    inventoryData.hoveredCell = null;
-                }
-            }
-            else {
-                findedCell = playerShip.tradeWith.items.find(cell => !cell.item && cell.type === slotTypes.shop);
-
-                hoveredItem.count = 1;
-                findedCell.item = hoveredItem;
-                hoveredCell.item.count -= 1;
-                playerShip.money -= hoveredItem.price;
-            }
-        }
-        else if (hoveredCell.type !== slotTypes.shop && hoveredItem.type === itemTypes.weapon) {
-            let findedCell = playerShip.tradeWith.items.find(cell => !cell.item && cell.type === slotTypes.shop);
-
-            if (findedCell) {
-                findedCell.item = hoveredItem;
+            if (hoveredCell.item.count <= 0) {
                 hoveredCell.item = null;
-                playerShip.money += hoveredItem.price;
                 inventoryData.hoveredCell = null;
             }
+        }
+        // Sell weapon
+        else if (hoveredCell.type !== slotTypes.shop && hoveredItem.type === itemTypes.weapon) {
+            addItemToInventory(playerShip.tradeWith, hoveredItem, slotTypes.shop);
+
+            playerShip.money += hoveredItem.price;
+
+            hoveredCell.item = null;
+            inventoryData.hoveredCell = null;
         }
     }
 });
@@ -241,7 +174,7 @@ function getCellByMouseCoords({ x, y }) {
 
     if (!playerShip.tradeWith || !playerShip.tradeWith.isOpen || res) return res;
 
-    return playerShip.tradeWith.items.find(cell =>
+    return playerShip.tradeWith.inventory.find(cell =>
         x > cell.x - inventoryData.inventoryOffsetX &&
         x < cell.x - inventoryData.inventoryOffsetX + inventoryData.cellSize &&
         y > cell.y - inventoryData.inventoryOffsetY &&
@@ -385,17 +318,19 @@ function createInventory(ship, level) {
     for (let i = 0; i < weaponSlotsCount; i++) {
         let item = null;
 
-        if (seed.unit() > 0.4) {
-            item = createItem(seed, itemTypes.weapon, level);
-        }
-
         ship.inventory.push({
             x: canvas.width / 2 - inventoryData.width / 2 + i * size + gap,
             y: canvas.height / 2 - inventoryData.height / 2 + gap,
             type: slotTypes.weapons,
             index: ship.inventory.length,
-            item
+            item: null
         });
+
+        if (seed.unit() > 0.6) {
+            item = createItem(seed, itemTypes.weapon, level);
+
+            addItemToInventory(ship, item);
+        }
     }
 
     const inventoryOffset = size * 5 + gap * 2;
@@ -408,12 +343,6 @@ function createInventory(ship, level) {
             counter = 0;
         }
 
-        let item = null;
-
-        if (i && i % 5 === 0) {
-            item = createItem(seed, itemTypes.another);
-        }
-
         let x = canvas.width / 2 - inventoryData.width / 2 + counter * size + inventoryOffset;
         let y = canvas.height / 2 - inventoryData.height / 2 + row + gap;
 
@@ -422,10 +351,46 @@ function createInventory(ship, level) {
             y,
             type: slotTypes.inventory,
             index: ship.inventory.length,
-            item
+            item: null
         });
 
+        let item = null;
+
+        if (seed.unit() > 0.7) {
+            item = createItem(seed, itemTypes.another);
+
+            item.count = ~~(seed.unit() * 2) + 1;
+
+            addItemToInventory(ship, item, slotTypes.inventory);
+        }
+
         counter++;
+    }
+}
+
+function addItemToInventory(target, item, slot) {
+    if (!item) return;
+
+    let foundeCell = target.inventory.find(cell =>
+        cell.item && cell.item.count >= 0 && cell.item.name === item.name
+    );
+
+    if (foundeCell) {
+        foundeCell.item.count += item.count;
+    }
+    else {
+        let foundeCell = target.inventory.find(cell => {
+            if (item.type === itemTypes.another && cell.type === slot && !cell.item) {
+                return cell;
+            }
+            else if (item.type === itemTypes.weapon && !cell.item) {
+                return cell;
+            }
+        });
+
+        if (foundeCell) {
+            foundeCell.item = item;        
+        }
     }
 }
 
@@ -441,7 +406,7 @@ function drawShop() {
         inventoryData.height
     );
 
-    playerShip.tradeWith.items.forEach(cell => {
+    playerShip.tradeWith.inventory.forEach(cell => {
         if (cell.item) {
             ctx.fillStyle = 'rgba(150, 150, 150, .5)';
         }
@@ -496,7 +461,14 @@ function createShopStuff(shop) {
         const y = canvas.height / 2 - inventoryData.height / 2 + row + gap;
 
         let item = null;
-        let findedItem = null;
+
+        shop.inventory.push({
+            x,
+            y,
+            type: slotTypes.shop,
+            index: shop.inventory.length,
+            item
+        });
 
         if (itemCounter < stuffCount) {
             const chance = ~~(seed.unit() * 10);
@@ -510,27 +482,12 @@ function createShopStuff(shop) {
                     break;
             }
 
-            findedItem = shop.items.find(cell => 
-                cell.item && cell.item.name === item.name
-            );
+            addItemToInventory(shop, item, slotTypes.shop);
 
-            if (findedItem) {
-                findedItem.item.count += item.count;
-
-                item = null;
-            }
+            itemCounter++;
         }
-
-        shop.items.push({
-            x,
-            y,
-            type: slotTypes.shop,
-            index: shop.items.length,
-            item
-        });
             
         counter++;
-        itemCounter++;
     }
 }
 
@@ -566,7 +523,7 @@ function createItem(seed, type, level) {
     }
     else {
         const itemId = ~~(legalItems.length * seed.unit());
-        
+
         const item = legalItems[itemId];
         const price = computeItemPrice(item);
         const count = computeItemCount(item);
