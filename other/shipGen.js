@@ -106,7 +106,7 @@ function createCells() {
         if (!target.classList.contains('cell')) return;
     
         let i = cells.findIndex(d => d === target);
-    
+        
         data[i] = +!data[i];
 
         cells[i].classList.toggle('filled');

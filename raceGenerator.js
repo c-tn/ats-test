@@ -11,6 +11,7 @@ function generateReces() {
             name: generateName(seed),
             radius: ~~(seed.unit() * config.avgRaceControlRadius),
             color: null,
+            shipSprite: null,
             systemsCount: 0
         }
 
@@ -25,6 +26,16 @@ function generateReces() {
 
         race.color = `#${ r }${ g }${ b }`;
 
+        const hsl = hexToHSL(race.color);
+        const maskId = ~~(race.seed.unit() * masks.length);
+
+        race.shipSprite = generateSprite({
+            seed: race.seed.unitString(),
+            hue: hsl.h / 360,
+            saturation: hsl.s / 100,
+            data: masks[maskId]
+        });
+
         races.push(race);
     }
 }
@@ -33,8 +44,8 @@ function populateRaces() {
     for (let i = 0; i < races.length; i++) {
         const race = races[i];
 
-        const x = ~~(race.seed.unit() * 2000) - 1000;
-        const y = ~~(race.seed.unit() * 2000) - 1000;
+        const x = ~~(race.seed.unit() * 3000) - 1500;
+        const y = ~~(race.seed.unit() * 3000) - 1500;
         const selectCircle = createCircle(x, y, race.radius);
 
         let chunks = systemQtree.query(selectCircle);

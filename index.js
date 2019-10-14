@@ -89,8 +89,10 @@ const itemCategories = {
     medicine: {
         name: 'medicine',
         spread: spreadTypes.legal,
+        availability: 0.5,
         crisis: {
-            availability: 0.3,
+            crisisChance: 0.3,
+            availability: 0.1,
             crisisMarkup: 20
         },
         price: {
@@ -101,15 +103,56 @@ const itemCategories = {
     minerals: {
         name: 'minerals',
         spread: spreadTypes.legal,
+        availability: 0.9,
         crisis: false,
         price: {
-            min: 50,
+            min: 30,
             mid: 50
         }
     },
+    jewelry: {
+        name: 'jewelry',
+        spread: spreadTypes.legal,
+        availability: 0.6,
+        crisis: false,
+        price: {
+            min: 300,
+            mid: 100
+        }
+    },
+    metal: {
+        name: 'metal',
+        spread: spreadTypes.legal,
+        availability: 0.5,
+        crisis: {
+            crisisChance: 0.2,
+            availability: 0.2,
+            crisisMarkup: 20
+        },
+        price: {
+            min: 50,
+            mid: 100
+        }
+    },
+    rareMetal: {
+        name: 'rare metal',
+        spread: spreadTypes.legal,
+        availability: 0.01,
+        crisis: {
+            crisisChance: 1,
+            availability: 0.01,
+            crisisMarkup: 20
+        },
+        price: {
+            min: 400,
+            mid: 100
+        }
+    },
+
     drugs: {
         name: 'drugs',
         spread: spreadTypes.unlegal,
+        availability: 0.3,
         crisis: false,
         price: {
             min: 200,
@@ -190,10 +233,13 @@ function createShip(isRandom) {
         callTrigger
     }
 
+    maskId = ~~(seed.unit() * masks.length);
+
     ship.sprite = generateSprite({
         hue: seedNum,
         seed: seedStr,
-        saturation: seedNum
+        saturation: seedNum,
+        data: masks[maskId]
     });
 
     createInventory(ship, level);
@@ -870,4 +916,72 @@ function tp(x, y, ship) {
     ship.x = x;
     ship.y = y;
     ship.currentSpeed = 0;
+}
+
+function hexToRgb(hex) {
+    let r = 0;
+    let g = 0;
+    let b = 0;
+
+    if (hex.length === 4) {
+        r = Number('0x' + hex[1] + hex[1]);
+        g = Number('0x' + hex[2] + hex[2]);
+        b = Number('0x' + hex[3] + hex[3]);
+    }
+    else if (hex.length === 7) {
+        r = Number('0x' + hex[1] + hex[2]);
+        g = Number('0x' + hex[3] + hex[4]);
+        b = Number('0x' + hex[5] + hex[6]);
+    }
+
+    return { r, g, b };
+}
+
+function hexToHSL(hex) {
+    const rgb = hexToRgb(hex);
+
+    const r = rgb.r / 255;
+    const g = rgb.g / 255;
+    const b = rgb.b / 255;
+
+    const cmin = Math.min(r, g, b);
+    const cmax = Math.max(r, g, b);
+    const delta = cmax - cmin;
+    
+    let h = 0;
+    let s = 0;
+    let l = 0;
+
+    if (delta === 0) {
+        h = 0;
+    }
+    else if (cmax === r) {
+        h = ((g - b) / delta) % 6;
+    }
+    else if (cmax === g) {
+        h = (b - r) / delta + 2;
+    }
+    else {
+        h = (r - g) / delta + 4;
+    }
+
+    h = Math.round(h * 60);
+
+    if (h < 0) {
+        h += 360;
+    }
+
+    l = (cmax + cmin) / 2;
+    s = delta === 0
+        ? 0
+        : delta / (1 - Math.abs(2 * l - 1));
+    
+    s = +(s * 100).toFixed(1);
+    l = +(l * 100).toFixed(1);
+
+    return {
+        h: h / 360,
+        s: s / 100,
+        l
+    };
 }

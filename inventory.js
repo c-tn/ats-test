@@ -356,7 +356,7 @@ function createInventory(ship, level) {
 
         let item = null;
 
-        if (seed.unit() > 0.7) {
+        if (seed.unit() > 0.9) {
             item = createItem(seed, itemTypes.another);
 
             item.count = ~~(seed.unit() * 2) + 1;
@@ -440,7 +440,15 @@ function changeInventoryPrice() {
     playerShip.inventory.forEach(cell => {
         if (!cell.item || cell.item.type === itemTypes.weapon) return;
 
-        cell.item.price = computeItemPrice(itemCategories[cell.item.name]);
+        const key = cell.item.name.split(' ').map((word, i) => {
+            if (i) {
+                return word.replace(word[0], word[0].toUpperCase());
+            }
+
+            return word;
+        }).join('');
+
+        cell.item.price = computeItemPrice(itemCategories[key]);
     });
 }
 
@@ -541,7 +549,7 @@ function createItem(seed, type, level) {
 function computeItemPrice(item) {
     const availability = currentSystem.availabilityItems[item.name];
 
-    return item.price.min + ~~(item.price.mid * availability);
+    return item.price.min + ~~(item.price.mid * (1 - availability));
 }
 
 function computeItemCount(item) {

@@ -73,10 +73,13 @@ function createCrisisItem(system) {
 
     for (let i = 0; i < legalItems.length; i++) {
         const item = legalItems[i];
-        const minAvailability = item.crisis && item.crisis.availability || system.seed.unit();
-        const availability = +(system.seed.unit() * (1 - minAvailability) + minAvailability).toFixed(2);
 
-        system.availabilityItems[item.name] = availability;
+        if (item.crisis && system.seed.unit() > 1 - item.crisis.crisisChance) {
+            system.availabilityItems[item.name] = item.crisis.availability;
+        }
+        else {
+            system.availabilityItems[item.name] = item.availability;
+        }
     }
 }
 
