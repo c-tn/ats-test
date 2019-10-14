@@ -2,6 +2,7 @@ let races = [];
 
 function generateReces() {
     const raceCount = ~~(seed.unit() * config.avgRaceCount) + 3;
+    const colorAdditional = ~~(200 / raceCount);
 
     for (let i = 0; i < raceCount; i++) {
         const race = {
@@ -13,13 +14,13 @@ function generateReces() {
             systemsCount: 0
         }
 
-        let r = (~~(race.seed.unit() * 255)).toString(16);
+        let r = (200 - ~~(race.seed.unit() * (i + 1) * colorAdditional)).toString(16);
         r = r.length === 1 ? `0${r}` : r;
 
-        let g = (~~(race.seed.unit() * 255)).toString(16);
+        let g = (200 - ~~(race.seed.unit() * (i + 1) * colorAdditional)).toString(16);
         g = g.length === 1 ? `0${g}` : g;
 
-        let b = (~~(race.seed.unit() * 255)).toString(16);
+        let b = (200 - ~~(race.seed.unit() * (i + 1) * colorAdditional)).toString(16);
         b = b.length === 1 ? `0${b}` : b;
 
         race.color = `#${ r }${ g }${ b }`;

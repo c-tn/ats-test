@@ -92,6 +92,7 @@ function drawMap() {
 
             Object.values(chunk.systems).forEach(system => {
                 ctx.fillStyle = '#fff';
+                ctx.strokeStyle = '#fff';
 
                 if (
                     (system.x + chunk.x - mapData.offsetX > mapData.width / 2 ||
@@ -101,7 +102,7 @@ function drawMap() {
                 ) return;
 
                 if (chunk.owner) {
-                    ctx.fillStyle = chunk.owner.color;
+                    ctx.strokeStyle = chunk.owner.color;
                 }
                 if (currentSystem === system) {
                     ctx.fillStyle = '#0f0';
@@ -123,9 +124,13 @@ function drawMap() {
                     system.y + chunk.y - mapData.offsetY,
                     2, 0, Math.PI * 2
                 );
-
-                ctx.fill();
-
+                
+                if (chunk.owner) {
+                    ctx.stroke();
+                }
+                else {
+                    ctx.fill();
+                }
             });
             ctx.restore();
         });

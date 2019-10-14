@@ -60,7 +60,8 @@ function createChunkSystem(chunk) {
             seed: new RNG(chunk.seed.unitString()),
             isOpen: false,
             planets: {},
-            triggers: []
+            triggers: [],
+            owner: chunk.owner
         };
 
         chunk.systems[newSystem.name] = newSystem;
@@ -117,7 +118,9 @@ function createSystemPlanets(system) {
             color: textureColors[colorId],
             cities: [],
             triggers: [],
-            ships: []
+            ships: [],
+
+            owner: system.owner
         };
 
         newPlanet.x = Math.cos(newPlanet.currentAngle) * newPlanet.r;
