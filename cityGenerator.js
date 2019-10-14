@@ -15,6 +15,7 @@ const citySprites = {
  * @param {object} planet
  */
 function createCities(planet) {
+    if (!planet.owner) return;
 
     const seed = new RNG('' || planet.seed);
     const maxCitiesCount = 4;
@@ -25,12 +26,6 @@ function createCities(planet) {
         config.planetWidth,
         config.planetHeight
     );
-
-    planet.roads = [];
-    planet.buildings = [];
-    planet.triggers = [];
-    
-    if (!planet.owner) return;
 
     planet.qtree = new QuadTree(globalRect, 8);
 

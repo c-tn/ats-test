@@ -614,8 +614,10 @@ async function enterPlanet() {
     playerShip.x = 0;
     playerShip.y = 0;
 
-    if (!currentPlanet.ships) {
+    if (!currentPlanet.isOpen) {
         createCities(currentPlanet);
+
+        currentPlanet.isOpen = true;
     }
 
     currentPlanet.ships.push(playerShip);

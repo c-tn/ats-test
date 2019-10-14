@@ -113,12 +113,15 @@ function createSystemPlanets(system) {
             currentAngle: system.seed.unit() * (360 * Math.PI / 180),
 
             type: envTypes.planet,
+            isOpen: false,
             name: generateName(system.seed),
             seed: system.seed.unitString(),
             color: textureColors[colorId],
             cities: [],
             triggers: [],
             ships: [],
+            roads: [],
+            buildings: [],
 
             owner: system.owner
         };
