@@ -479,6 +479,8 @@ function drawRoads() {
         const roads = envData.current.roads[j];
         
         for (let i = 0; i < roads.length; i++) {
+            if (!inCamera(roads[i].coords)) continue;
+
             const paddings = roads[i].padding;
 
             if (!paddings[0]) break;
@@ -554,6 +556,8 @@ function drawBuildings() {
             }
 
             for (let k = 1; k < build.length; k++) {
+                if (!inCamera(build[k])) continue;
+
                 let angle = Math.atan2(build[k][1] - playerShip.y, build[k][0] - playerShip.x) + Math.PI;
                 let offset = Math.sqrt((build[k][0] - playerShip.x)**2 + (build[k][1] - playerShip.y)**2) / build.height;
 
@@ -594,6 +598,8 @@ function drawBuildings() {
             ctx.beginPath();
 
             for (let k = 0; k < build.length; k++) {
+                if (!inCamera(build[k])) continue;
+
                 let angle = Math.atan2(build[k][1] - playerShip.y, build[k][0] - playerShip.x) + Math.PI;
                 let offset = Math.sqrt((build[k][0] - playerShip.x)**2 + (build[k][1] - playerShip.y)**2) / build.height;
 
@@ -628,6 +634,8 @@ function drawTriggers() {
         const trigger = envData.current.triggers[i];
         const pos = trigger.pos;
         const build = trigger.build;
+        
+        if (!inCamera(pos)) continue;
 
         const angle = Math.atan2(build[0][1] - playerShip.y, build[0][0] - playerShip.x) + Math.PI;
         let offset = Math.sqrt((build[0][0] - playerShip.x)**2 + (build[0][1] - playerShip.y)**2) / build.height;

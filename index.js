@@ -325,6 +325,11 @@ const imageAngle = 90 * Math.PI / 180;
 
 function drawShips() {
     envData.current.ships = envData.current.ships.filter(ship => {
+        const isAlive = updateShip(ship);
+
+        if (!isAlive) return;
+        if (!inCamera(ship)) return ship;
+
         switch(ship.currentAnimation) {
             case animationTypes.landingIn:
                 landing(true, ship);
@@ -368,37 +373,7 @@ function drawShips() {
             );
         ctx.restore();
 
-        if (ship.hp > 0) {
-            doShipAction(ship);
-
-            return ship;
-        }
-        else {
-            createParticles({
-                x: ship.x,
-                y: ship.y,
-                size: 20,
-                force: 15,
-                count: 400,
-                cb() {
-                    const colors = [
-                        'rgba(255, 125, 0, .2)',
-                        'rgba(255, 200, 0, .4)',
-                        'rgba(150, 150, 150, .6)'
-                    ];
-                    
-                    if (this.size > this.initSize * 0.8) {
-                        this.color = colors[0];
-                    }
-                    else if (this.size > this.initSize * 0.5) {
-                        this.color = colors[1];
-                    }
-                    else {
-                        this.color = colors[2];
-                    }
-                }
-            });
-        }
+        return ship;
     });
 
     setShadowsParam();
@@ -408,7 +383,7 @@ function drawParticles() {
 	particlesStorage = particlesStorage.filter(data => {
 		data.particles = data.particles.filter(p => {
 			data.cb.apply(p);
-			p.update();
+            p.update();
 			p.render();
 			
 			if (p.size > 0) return p;
@@ -420,81 +395,112 @@ function drawParticles() {
     });
 }
 
-function updateShip() {
-    envData.current.ships.forEach(ship => {
-        if (ship.isForward && !ship.isSlowDown) {
-            ship.currentSpeed += ship.velocity;
-
-            if (ship.currentSpeed > ship.maxSpeed) {
-                ship.currentSpeed = ship.maxSpeed;
+function updateShip(ship) {
+    if (ship.hp < 0) {
+        createParticles({
+            x: ship.x,
+            y: ship.y,
+            size: 20,
+            force: 15,
+            count: 400,
+            cb() {
+                const colors = [
+                    'rgba(255, 125, 0, .2)',
+                    'rgba(255, 200, 0, .4)',
+                    'rgba(150, 150, 150, .6)'
+                ];
+                
+                if (this.size > this.initSize * 0.8) {
+                    this.color = colors[0];
+                }
+                else if (this.size > this.initSize * 0.5) {
+                    this.color = colors[1];
+                }
+                else {
+                    this.color = colors[2];
+                }
             }
+        });
+
+        return false;
+    }
+
+    doShipAction(ship);
+
+    if (ship.isForward && !ship.isSlowDown) {
+        ship.currentSpeed += ship.velocity;
+
+        if (ship.currentSpeed > ship.maxSpeed) {
+            ship.currentSpeed = ship.maxSpeed;
         }
-        
-        if (ship.isBackward && !ship.isSlowDown) {
+    }
+    
+    if (ship.isBackward && !ship.isSlowDown) {
+        ship.currentSpeed -= ship.velocity;
+
+        if (ship.currentSpeed < -ship.maxSpeed) {
+            ship.currentSpeed = -ship.maxSpeed;
+        }
+    }
+
+    if (ship.isSlowDown) {
+        if (ship.currentSpeed > 0) {
             ship.currentSpeed -= ship.velocity;
 
-            if (ship.currentSpeed < -ship.maxSpeed) {
-                ship.currentSpeed = -ship.maxSpeed;
+            if (ship.currentSpeed < 0) {
+                ship.currentSpeed = 0;
             }
         }
+        else {
+            ship.currentSpeed += ship.velocity;
 
-        if (ship.isSlowDown) {
             if (ship.currentSpeed > 0) {
-                ship.currentSpeed -= ship.velocity;
-
-                if (ship.currentSpeed < 0) {
-                    ship.currentSpeed = 0;
-                }
-            }
-            else {
-                ship.currentSpeed += ship.velocity;
-
-                if (ship.currentSpeed > 0) {
-                    ship.currentSpeed = 0;
-                }
+                ship.currentSpeed = 0;
             }
         }
+    }
 
-        if (ship.isLeftRotate) {
-            ship.currentAngle -= ship.rotateSpeed;
+    if (ship.isLeftRotate) {
+        ship.currentAngle -= ship.rotateSpeed;
 
-            if (ship.currentAngle < 0) {
-                ship.currentAngle = Math.PI * 2 + ship.currentAngle;
+        if (ship.currentAngle < 0) {
+            ship.currentAngle = Math.PI * 2 + ship.currentAngle;
+        }
+    }
+
+    if (ship.isRightRotate) {
+        ship.currentAngle += ship.rotateSpeed;
+
+        if (ship.currentAngle > Math.PI * 2) {
+            ship.currentAngle = ship.currentAngle - Math.PI * 2;
+        }
+    }
+
+    if (ship.isShoting) {
+        const now = performance.now();
+
+        ship.inventory.forEach((cell, i) => {
+            if (!cell.item || cell.type !== slotTypes.weapons) return;
+
+            
+            if (now - cell.item.lastShot > cell.item.stats.reload) {
+                createBullet({
+                    x: Math.cos(ship.currentAngle) - (i * -18 + 35) * Math.sin(ship.currentAngle) + ship.x,
+                    y: Math.sin(ship.currentAngle) + (i * -18 + 35) * Math.cos(ship.currentAngle) + ship.y,
+                    currentAngle: ship.currentAngle,
+                    ownerId: ship.id,
+                    damage: cell.item.stats.damage
+                });
+
+                cell.item.lastShot = now;
             }
-        }
+        });
+    }
 
-        if (ship.isRightRotate) {
-            ship.currentAngle += ship.rotateSpeed;
+    ship.x += Math.cos(ship.currentAngle) * ship.currentSpeed;
+    ship.y += Math.sin(ship.currentAngle) * ship.currentSpeed;
 
-            if (ship.currentAngle > Math.PI * 2) {
-                ship.currentAngle = ship.currentAngle - Math.PI * 2;
-            }
-        }
-
-        if (ship.isShoting) {
-            const now = performance.now();
-
-            ship.inventory.forEach((cell, i) => {
-                if (!cell.item || cell.type !== slotTypes.weapons) return;
-
-                
-                if (now - cell.item.lastShot > cell.item.stats.reload) {
-                    createBullet({
-                        x: Math.cos(ship.currentAngle) - (i * -18 + 35) * Math.sin(ship.currentAngle) + ship.x,
-                        y: Math.sin(ship.currentAngle) + (i * -18 + 35) * Math.cos(ship.currentAngle) + ship.y,
-                        currentAngle: ship.currentAngle,
-                        ownerId: ship.id,
-                        damage: cell.item.stats.damage
-                    });
-    
-                    cell.item.lastShot = now;
-                }
-            });
-        }
-
-        ship.x += Math.cos(ship.currentAngle) * ship.currentSpeed;
-        ship.y += Math.sin(ship.currentAngle) * ship.currentSpeed;
-    });
+    return true;
 }
 
 function updateCameraData() {
@@ -588,7 +594,6 @@ ctx.textAlign = 'center';
 function gameLoop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    updateShip();
     updateCameraData();
 
     drawLandscape();
@@ -986,4 +991,25 @@ function hexToHSL(hex) {
         s: s / 100,
         l
     };
+}
+
+function inCamera(pos) {
+    let x = 0;
+    let y = 0;
+
+    if (Array.isArray(pos)) {
+        x = pos[0];
+        y = pos[1];
+    }
+    else {
+        x = pos.x;
+        y = pos.y;
+    }
+
+    return (
+        x > camera.x - camera.width * 2 &&
+        x < camera.x + camera.width * 2 &&
+        y > camera.y - camera.height * 2 &&
+        y < camera.y + camera.height * 2
+    );
 }
