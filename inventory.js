@@ -358,9 +358,7 @@ function createInventory(ship, level) {
 
         if (seed.unit() > 0.9) {
             item = createItem(seed, itemTypes.another);
-
-            computeItemCount(item)
-
+            item.count = computeItemCount(item, true)
             addItemToInventory(ship, item, slotTypes.inventory);
         }
 
@@ -552,8 +550,9 @@ function computeItemPrice(item) {
     return item.price.min + ~~(item.price.mid * (1 - availability));
 }
 
-function computeItemCount(item) {
+function computeItemCount(item, isForShip) {
+    const multiplier = isForShip ? 2 : 10;
     const availability = currentSystem.availabilityItems[item.name];
 
-    return ~~(availability * 10);
+    return ~~(availability * multiplier);
 }
