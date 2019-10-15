@@ -359,7 +359,7 @@ function createInventory(ship, level) {
         if (seed.unit() > 0.9) {
             item = createItem(seed, itemTypes.another);
 
-            item.count = ~~(seed.unit() * 2) + 1;
+            computeItemCount(item)
 
             addItemToInventory(ship, item, slotTypes.inventory);
         }

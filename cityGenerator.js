@@ -20,6 +20,8 @@ function createCities(planet) {
     const seed = new RNG('' || planet.seed);
     const maxCitiesCount = 4;
 
+    planet.seed = seed;
+
     const globalRect = createRect(
         -config.planetWidth / 2,
         -config.planetHeight / 2,
@@ -35,6 +37,8 @@ function createCities(planet) {
         const cityData = {
             id: seed.unitString(),
             name: `C-${ generateName(seed) }`,
+            buildings: [],
+            roads: []
         }
 
         const startX = i * (config.planetWidth / 4) - config.planetWidth / 2.5;
@@ -77,10 +81,17 @@ function createCities(planet) {
 
         clearSegmets(segments);
 
+        const ships = [];
+        createShips(ships, planet, { buildings, segments });
+
+        cityData.roads = segments;
+        cityData.buildings = buildings;
+
         planet.cities.push(cityData);
         planet.roads.push(segments);
         planet.buildings.push(buildings);
         planet.triggers.push(...triggers);
+        planet.ships.push(...ships);
     }
 }
 
@@ -829,4 +840,27 @@ function createLandings() {
     img.src = sprite.toDataURL();
 
     citySprites.landing = img;
+}
+
+function createShips(ships, planet, city) {
+    const policeCount = ~~(city.buildings.length / 10);
+
+    for (let i = 0; i < policeCount; i++) {
+        let ship = createShip(planet.seed);
+
+        ship.sprite = planet.owner.shipSprite;
+
+        let buildId = ~~(planet.seed.unit() * city.buildings.length);
+        let pos = city.buildings[buildId][0];
+
+        ship.x = pos[0];
+        ship.y = pos[1];
+
+        buildId = ~~(ship.seed.unit() * city.buildings.length);
+        pos = city.buildings[buildId][0];
+
+        ship.action = createAction(actionsTypes.patrol, pos, city);
+
+        ships.push(ship);
+    }
 }

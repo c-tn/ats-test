@@ -192,17 +192,18 @@ const animationTypes = {
     landingOut: 'landing-out'
 }
 
-function createShip(isRandom) {
+function createShip(seed) {
     const seedNum = seed.unit();
     const seedStr = seedNum.toString(36).substr(2);
 
-    const level = isRandom ? ~~(seed.unit() * config.itemsLevel.length) : 0;
+    const level = 0;
     const data = config.itemsLevel[level];
     const hp = ~~(data.health.mid * seed.unit()) + data.health.min;
     const money = ~~(300 * seed.unit());
 
     let ship = {
         id: seedNum,
+        seed: new RNG(seedStr),
         sprite: null,
         x: config.planetWidth * seed.unit() - config.planetWidth / 2,
         y: config.planetHeight * seed.unit() - config.planetHeight / 2,
@@ -230,6 +231,7 @@ function createShip(isRandom) {
         isRightRotate: false,
 
         tradeWith: null,
+        action: {},
         callTrigger
     }
 
@@ -251,7 +253,7 @@ let playerShip = null;
 let camera = null;
 
 async function startGame() {
-    playerShip = createShip();
+    playerShip = createShip(seed);
     camera = {
         x: playerShip.x,
         y: playerShip.y,
@@ -266,7 +268,7 @@ async function startGame() {
     currentPlanet.ships.push(playerShip);
 }
 
-const seedValue = '' || Math.random().toString(36).substr(2);
+const seedValue = 'f2hvee3ug9a' || Math.random().toString(36).substr(2);
 console.log(seedValue);
 const seed = new RNG(seedValue);
 
@@ -367,6 +369,8 @@ function drawShips() {
         ctx.restore();
 
         if (ship.hp > 0) {
+            doShipAction(ship);
+
             return ship;
         }
         else {
@@ -416,8 +420,6 @@ function drawParticles() {
     });
 }
 
-const maxAngle = 360 * Math.PI / 180;
-
 function updateShip() {
     envData.current.ships.forEach(ship => {
         if (ship.isForward && !ship.isSlowDown) {
@@ -457,15 +459,15 @@ function updateShip() {
             ship.currentAngle -= ship.rotateSpeed;
 
             if (ship.currentAngle < 0) {
-                ship.currentAngle = maxAngle + ship.currentAngle;
+                ship.currentAngle = Math.PI * 2 + ship.currentAngle;
             }
         }
 
         if (ship.isRightRotate) {
             ship.currentAngle += ship.rotateSpeed;
 
-            if (ship.currentAngle > maxAngle) {
-                ship.currentAngle = ship.currentAngle - maxAngle;
+            if (ship.currentAngle > Math.PI * 2) {
+                ship.currentAngle = ship.currentAngle - Math.PI * 2;
             }
         }
 
