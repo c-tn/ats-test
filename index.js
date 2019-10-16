@@ -268,7 +268,7 @@ async function startGame() {
     currentPlanet.ships.push(playerShip);
 }
 
-const seedValue = 'g6f86mo4dbb' || Math.random().toString(36).substr(2);
+const seedValue = '4tc5roxpwef' || Math.random().toString(36).substr(2);
 console.log(seedValue);
 const seed = new RNG(seedValue);
 

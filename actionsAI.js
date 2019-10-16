@@ -16,20 +16,20 @@ function createAction(type, target, data) {
 
 function doShipAction(ship) {
     switch (ship.action.type) {
-        case actionsTypes.move: return moveTo(ship);
+        case actionsTypes.move: moveTo(ship); break;
 
-        case actionsTypes.patrol: return patrol(ship);
+        case actionsTypes.patrol: patrol(ship); break;
 
-        case actionsTypes.wait: return wait(ship);
+        case actionsTypes.wait: wait(ship); break;
 
-        case actionsTypes.destroy: return;
+        case actionsTypes.destroy: break;
 
-        default: return;
+        default: break;
     }
 }
 
 function moveTo(ship) {
-    if (ship.action.isComplete) return true;
+    if (ship.action.isComplete) return;
 
     const point = ship.action.target;
 
@@ -45,15 +45,13 @@ function moveTo(ship) {
         ship.isForward = false;
     }
 
-    if (d < 20 && ship.currentSpeed === 0) {
+    if (d < 100 && ship.currentSpeed === 0) {
         ship.action.isComplete = true;
 
         ship.isSlowDown = false;
         ship.isForward = false;
         ship.isLeftRotate = false;
         ship.isRightRotate = false;
-
-        return true;
     }
 
     rotateTo(ship, point);
@@ -68,8 +66,6 @@ function rotateTo(ship, point) {
     if (angleDif < Math.PI + 0.1 && angleDif > Math.PI + -0.1 && !ship.action.isComplete) {
         ship.isLeftRotate = false;
         ship.isRightRotate = false;
-
-        return true;
     }
     else if (angleDif < Math.PI && !ship.isLeftRotate && !ship.action.isComplete) {
         ship.isLeftRotate = false;
@@ -99,6 +95,6 @@ function patrol(ship) {
 
 function wait(ship) {
     if (ship.action.to - performance.now() < 0) {
-        return true;
+        ship.action.isComplete = true;
     }
 }

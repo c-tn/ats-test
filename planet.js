@@ -22,6 +22,22 @@ async function createPlanetSprite(planet) {
     });
 }
 
+function updatePlanet(planet) {
+    if (planet.type === envTypes.sun) return;
+
+    const oldTimestamp = planet.timestamp;
+    planet.timestamp = performance.now();
+
+    const anglePerSecond = planet.currentSpeed * 60;
+    const timeDif = planet.timestamp - oldTimestamp;
+    
+    planet.currentAngle += timeDif / 1000 * anglePerSecond;
+
+    planet.x = Math.cos(planet.currentAngle) * planet.r;
+    planet.y = Math.sin(planet.currentAngle) * planet.r;
+    planet.currentAngle += planet.currentSpeed;
+}
+
 function drawPlanets() {
     if (envData.current.type !== envTypes.system) return;
 
@@ -36,10 +52,6 @@ function drawPlanets() {
             else {
                 setShadowsParam();
             }
-
-            planet.x = Math.cos(planet.currentAngle) * planet.r;
-            planet.y = Math.sin(planet.currentAngle) * planet.r;
-            planet.currentAngle += planet.currentSpeed;
 
             ctx.save();
                 ctx.translate(

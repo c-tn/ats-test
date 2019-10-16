@@ -113,10 +113,11 @@ function createSystemPlanets(system) {
             r: i * 3000,
             size: config.minPlanetSize,
             currentSpeed: system.seed.unit() * 0.0001,
-            currentAngle: system.seed.unit() * (360 * Math.PI / 180),
+            currentAngle: system.seed.unit() * Math.PI * 2,
+            timestamp: performance.now(),
 
-            type: envTypes.planet,
             isOpen: false,
+            type: envTypes.planet,
             name: generateName(system.seed),
             seed: system.seed.unitString(),
             color: textureColors[colorId],

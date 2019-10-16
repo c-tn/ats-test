@@ -88,6 +88,8 @@ async function createPlanetTexture(planet) {
 }
 
 function drawLandscape() {
+    Object.values(currentSystem.planets).forEach(planet => updatePlanet(planet));
+
     if (envData.current.type === envTypes.system) {
         ctx.fillStyle = '#111';
 
