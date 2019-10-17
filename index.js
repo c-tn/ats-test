@@ -919,10 +919,17 @@ function showModal() {
     );
 }
 
-function tp(x, y, ship) {
-    ship.x = x;
-    ship.y = y;
-    ship.currentSpeed = 0;
+function tp(pos, ship) {
+    if (Array.isArray(pos)) {
+        ship.x = pos[0];
+        ship.y = pos[1];
+        ship.currentSpeed = 0;
+    }
+    else {
+        ship.x = pos.x;
+        ship.y = pos.y;
+        ship.currentSpeed = 0;
+    }
 }
 
 function hexToRgb(hex) {

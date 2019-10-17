@@ -263,8 +263,8 @@ canvas.addEventListener('click', ({ offsetX, offsetY }) => {
     }
     
     if (mapData.mapType !== mapTypes.chunks) {
-        playerShip.x = coords.globalX;
-        playerShip.y = coords.globalY;
+        // playerShip.x = coords.globalX;
+        // playerShip.y = coords.globalY;
     }
 });
 

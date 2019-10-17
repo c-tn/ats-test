@@ -28,30 +28,48 @@ function doShipAction(ship) {
     }
 }
 
-function moveTo(ship) {
+function moveTo(ship, data = { isNeedStop: true }) {
     if (ship.action.isComplete) return;
 
+    if (!data.maxSpeed) {
+        data.maxSpeed = ship.maxSpeed;
+    }
+
     const point = ship.action.target;
+    const completeRange = 50;
+    const d = Math.sqrt((ship.x - point[0])**2 + (ship.y - point[1])**2) - 50;
+    const stopPath = (Math.max(ship.currentSpeed, 1))**2 / (1.5 * ship.velocity);
 
-    const d = Math.sqrt((ship.x - point[0])**2 + (ship.y - point[1])**2);
-    const stopPath = (Math.max(ship.currentSpeed, 7))**2 / (1.9 * ship.velocity);
+    if (data.isNeedStop) {
+        if (d > stopPath) {
+            ship.isSlowDown = false;
+            ship.isForward = true;
+        }
+        else {
+            ship.isSlowDown = true;
+            ship.isForward = false;
+        }
 
-    if (d > stopPath) {
-        ship.isSlowDown = false;
-        ship.isForward = true;
+        if (d < completeRange && ship.currentSpeed === 0) {
+            ship.action.isComplete = true;
+    
+            ship.isSlowDown = false;
+            ship.isForward = false;
+            ship.isLeftRotate = false;
+            ship.isRightRotate = false;
+        }
     }
     else {
-        ship.isSlowDown = true;
-        ship.isForward = false;
+        if (d < completeRange) {
+            ship.action.isComplete = true;
+        }
+        else {
+            ship.isForward = true;
+        }
     }
 
-    if (d < 100 && ship.currentSpeed === 0) {
-        ship.action.isComplete = true;
-
-        ship.isSlowDown = false;
+    if (ship.currentSpeed > data.maxSpeed) {
         ship.isForward = false;
-        ship.isLeftRotate = false;
-        ship.isRightRotate = false;
     }
 
     rotateTo(ship, point);
@@ -60,18 +78,19 @@ function moveTo(ship) {
 function rotateTo(ship, point) {
     if (ship.action.isComplete) return true;
 
-    const angle = Math.atan2(ship.y - point[1], ship.x - point[0]) + Math.PI;
-    const angleDif = ship.currentAngle - angle + Math.PI;
+    const target = Math.atan2(ship.y - point[1], ship.x - point[0]) + Math.PI;
+    const angleDif = Math.min(ship.currentAngle - target, target - ship.currentAngle);
+    const offset = 0.2;
 
-    if (angleDif < Math.PI + 0.1 && angleDif > Math.PI + -0.1 && !ship.action.isComplete) {
+    if (angleDif > -offset && angleDif < offset) {
         ship.isLeftRotate = false;
         ship.isRightRotate = false;
     }
-    else if (angleDif < Math.PI && !ship.isLeftRotate && !ship.action.isComplete) {
+    else if (angleDif < 0) {
         ship.isLeftRotate = false;
         ship.isRightRotate = true;
     }
-    else if (angleDif > Math.PI && !ship.isRightRotate && !ship.action.isComplete) {
+    else if (angleDif > 0) {
         ship.isLeftRotate = true;
         ship.isRightRotate = false;
     }
@@ -79,7 +98,10 @@ function rotateTo(ship, point) {
 
 function patrol(ship) {
     if (!ship.action.isComplete) {
-        moveTo(ship);
+        moveTo(ship, {
+            maxSpeed: 10,
+            isNeedStop: false
+        });
     }
     else {
         ship.action.isComplete = false;
@@ -89,7 +111,10 @@ function patrol(ship) {
 
         ship.action = createAction(actionsTypes.patrol, pos, ship.action.data);
 
-        moveTo(ship);
+        moveTo(ship, {
+            maxSpeed: 10,
+            isNeedStop: false
+        });
     }
 }
 
