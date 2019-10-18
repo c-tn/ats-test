@@ -79,18 +79,17 @@ function rotateTo(ship, point) {
     if (ship.action.isComplete) return true;
 
     const target = Math.atan2(ship.y - point[1], ship.x - point[0]) + Math.PI;
-    const angleDif = Math.min(ship.currentAngle - target, target - ship.currentAngle);
     const offset = 0.2;
 
-    if (angleDif > -offset && angleDif < offset) {
+    if (ship.currentAngle > target - offset && ship.currentAngle < target + offset) {
         ship.isLeftRotate = false;
         ship.isRightRotate = false;
     }
-    else if (angleDif < 0) {
+    else if (ship.currentAngle < target) {
         ship.isLeftRotate = false;
         ship.isRightRotate = true;
     }
-    else if (angleDif > 0) {
+    else if (ship.currentAngle > target) {
         ship.isLeftRotate = true;
         ship.isRightRotate = false;
     }
