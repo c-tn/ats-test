@@ -268,7 +268,7 @@ async function startGame() {
     currentPlanet.ships.push(playerShip);
 }
 
-const seedValue = '4tc5roxpwef' || Math.random().toString(36).substr(2);
+const seedValue = '0wpvbopb8z4' || Math.random().toString(36).substr(2);
 console.log(seedValue);
 const seed = new RNG(seedValue);
 
@@ -720,6 +720,8 @@ const keys = {
     d: 68,
     l: 76,
     m: 77,
+    p: 80,
+    o: 79,
     space: 32,
     mouseleft: 1,
     mouseright: 3
@@ -817,6 +819,14 @@ function handleKey(e) {
 
         case keys.space:
             changeShipState(playerShip, 'isShoting', value);
+            break;
+
+        case keys.o:
+            value && wheelActions(-5);
+            break;
+
+        case keys.p:
+            value && wheelActions(5);
             break;
 
         default:
