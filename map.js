@@ -262,9 +262,9 @@ canvas.addEventListener('click', ({ offsetX, offsetY }) => {
         enterSystem(mapData.hoveredSystem, mapData.hoveredChunk);
     }
     
-    if (mapData.mapType !== mapTypes.chunks) {
-        // playerShip.x = coords.globalX;
-        // playerShip.y = coords.globalY;
+    if (isDebug && mapData.mapType !== mapTypes.chunks) {
+        playerShip.x = coords.globalX;
+        playerShip.y = coords.globalY;
     }
 });
 

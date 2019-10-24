@@ -10,6 +10,11 @@ const citySprites = {
     landing: null
 }
 
+const shipTypes = {
+    police: 'police',
+    traders: 'traders'
+}
+
 /**
  * Create cities for planet
  * @param {object} planet
@@ -82,10 +87,16 @@ function createCities(planet) {
         clearSegmets(segments);
 
         const ships = [];
-        createShips(ships, planet, { buildings, segments });
+        createShips({
+            cityId: planet.cities.length,
+            buildings,
+            planet,
+            ships
+        }, shipTypes.police);
 
         cityData.roads = segments;
         cityData.buildings = buildings;
+        cityData.triggers = triggers;
 
         planet.cities.push(cityData);
         planet.roads.push(segments);
@@ -93,6 +104,12 @@ function createCities(planet) {
         planet.triggers.push(...triggers);
         planet.ships.push(...ships);
     }
+
+    createShips({
+        cities: planet.cities,
+        ships: planet.ships,
+        seed
+    }, shipTypes.traders);
 }
 
 function clearSegmets(segments) {
@@ -850,25 +867,85 @@ function createLandings() {
     citySprites.landing = img;
 }
 
-function createShips(ships, planet, city) {
-    const policeCount = ~~(city.buildings.length / 10);
+function createShips(data, type) {
+    switch (type) {
+        case shipTypes.police:
+            createPolice(data);
+            break;
+
+        case shipTypes.traders:
+            createTraders(data);
+            break;
+
+        default: break;
+    }
+}
+
+function createPolice(data) {
+    const policeCount = ~~(data.buildings.length / 10);
 
     for (let i = 0; i < policeCount; i++) {
-        let ship = createShip(planet.seed);
+        let ship = createShip(data.planet.seed);
 
-        ship.sprite = planet.owner.shipSprite;
+        ship.sprite = data.planet.owner.shipSprite;
 
-        let buildId = ~~(planet.seed.unit() * city.buildings.length);
-        let pos = city.buildings[buildId][0];
+        let buildId = ~~(data.planet.seed.unit() * data.buildings.length);
+        const pos = data.buildings[buildId][0];
 
         ship.x = pos[0];
         ship.y = pos[1];
 
-        buildId = ~~(ship.seed.unit() * city.buildings.length);
-        pos = city.buildings[buildId][0];
+        buildId = ~~(ship.seed.unit() * data.buildings.length);
+        ship.action = {
+            regularAction: actionsTypes.patrol,
+            currentAction: actionsTypes.patrol,
+            isComplete: false,
+            data: {
+                isNeedStop: false,
+                range: 100,
+                maxSpeed: 10,
+                target: pos,
+                targetCityId: data.cityId
+            }
+        };
 
-        ship.action = createAction(actionsTypes.patrol, pos, city);
+        data.ships.push(ship);
+    }
+}
 
-        ships.push(ship);
+function createTraders(data) {
+    if (data.cities.length === 1) return;
+
+    const triggers = [];
+
+    data.cities.forEach(city => {
+        triggers.push(...city.triggers);
+    });
+
+    for (let i = 0; i < triggers.length; i++) {
+        if (seed.unit() > 0.5) continue;
+
+        const pos = triggers[i].pos;
+        const startCityId = ~~(data.seed.unit() * data.cities.length);
+        const endCityId = startCityId + 1 >= data.cities.length ? 0 : startCityId + 1;
+
+        let ship = createShip(data.seed);
+        ship.x = pos[0];
+        ship.y = pos[1];
+
+        ship.action = {
+            regularAction: actionsTypes.trade,
+            currentAction: actionsTypes.trade,
+            isComplete: false,
+            data: {
+                isTrading: false,
+                targetCityId: endCityId,
+                startCityId,
+                endCityId,
+                waitTo: performance.now() + 1000 * ship.seed.unit()
+            }
+        }
+
+        data.ships.push(ship);
     }
 }

@@ -2,46 +2,42 @@ const actionsTypes = {
     move: 'move',
     destroy: 'destroy',
     wait: 'wait',
-    patrol: 'patrol'
-}
-
-function createAction(type, target, data) {
-    return {
-        type,
-        target,
-        data,
-        isComplete: false
-    }
+    patrol: 'patrol',
+    trade: 'trade'
 }
 
 function doShipAction(ship) {
-    switch (ship.action.type) {
-        case actionsTypes.move: moveTo(ship); break;
-
-        case actionsTypes.patrol: patrol(ship); break;
-
-        case actionsTypes.wait: wait(ship); break;
-
-        case actionsTypes.destroy: break;
-
+    switch (ship.action.currentAction) {
+        case actionsTypes.move    : moveTo(ship); break;
+        case actionsTypes.patrol  : patrol(ship); break;
+        case actionsTypes.trade   : trade(ship); break;
+        case actionsTypes.wait    : wait(ship); break;
+        case actionsTypes.destroy : break;
         default: break;
     }
 }
 
-function moveTo(ship, data = { isNeedStop: true }) {
-    if (ship.action.isComplete) return;
+// Basic actions
+
+function moveTo(ship) {
+    if (ship.action.isComplete) {
+        ship.action.currentAction = ship.action.regularAction;
+
+        return 0;
+    };
+
+    let data = ship.action.data;
 
     if (!data.maxSpeed) {
         data.maxSpeed = ship.maxSpeed;
     }
 
-    const point = ship.action.target;
-    const completeRange = 50;
-    const d = Math.sqrt((ship.x - point[0])**2 + (ship.y - point[1])**2) - 50;
+    const point = ship.action.data.target;
+    const distance = Math.sqrt((ship.x - point[0])**2 + (ship.y - point[1])**2) - data.range;
     const stopPath = (Math.max(ship.currentSpeed, 1))**2 / (1.5 * ship.velocity);
 
     if (data.isNeedStop) {
-        if (d > stopPath) {
+        if (distance > stopPath) {
             ship.isSlowDown = false;
             ship.isForward = true;
         }
@@ -50,7 +46,7 @@ function moveTo(ship, data = { isNeedStop: true }) {
             ship.isForward = false;
         }
 
-        if (d < completeRange && ship.currentSpeed === 0) {
+        if (distance < data.range && ship.currentSpeed === 0) {
             ship.action.isComplete = true;
     
             ship.isSlowDown = false;
@@ -60,7 +56,7 @@ function moveTo(ship, data = { isNeedStop: true }) {
         }
     }
     else {
-        if (d < completeRange) {
+        if (distance < data.range) {
             ship.action.isComplete = true;
         }
         else {
@@ -73,10 +69,12 @@ function moveTo(ship, data = { isNeedStop: true }) {
     }
 
     rotateTo(ship, point);
+
+    return distance;
 }
 
 function rotateTo(ship, point) {
-    if (ship.action.isComplete) return true;
+    if (ship.action.isComplete) return;
 
     const offset = 0.2;
     const current = ship.currentAngle;
@@ -101,30 +99,88 @@ function rotateTo(ship, point) {
     }
 }
 
-function patrol(ship) {
-    if (!ship.action.isComplete) {
-        moveTo(ship, {
-            maxSpeed: 10,
-            isNeedStop: false
-        });
-    }
-    else {
-        ship.action.isComplete = false;
-
-        const buildId = ~~(ship.seed.unit() * ship.action.data.buildings.length);
-        const pos = ship.action.data.buildings[buildId][0];
-
-        ship.action = createAction(actionsTypes.patrol, pos, ship.action.data);
-
-        moveTo(ship, {
-            maxSpeed: 10,
-            isNeedStop: false
-        });
+function wait(ship) {
+    if (ship.action.data.waitTo - performance.now() < 0) {
+        ship.action.isComplete = true;
+        ship.action.currentAction = ship.action.regularAction;
     }
 }
 
-function wait(ship) {
-    if (ship.action.to - performance.now() < 0) {
-        ship.action.isComplete = true;
+
+// Complex actions
+
+function patrol(ship) {
+    const cityId = ship.action.data.targetCityId;
+    const buildId = ~~(ship.seed.unit() * currentPlanet.cities[cityId].buildings.length);
+    const pos = currentPlanet.cities[cityId].buildings[buildId][0];
+
+    ship.action = {
+        regularAction: actionsTypes.patrol,
+        currentAction: actionsTypes.move,
+        isComplete: false,
+        data: {
+            isNeedStop: false,
+            range: 100,
+            maxSpeed: 10,
+            target: pos,
+            targetCityId: cityId
+        }
+    }
+}
+
+function trade(ship) {
+    if (ship.action.currentAction === actionsTypes.move) {
+        ship.callTrigger();
+
+        ship.action.isComplete = false;
+        ship.action.currentAction = actionsTypes.trade;
+        ship.action.data.waitTo = performance.now() + 10000 * ship.seed.unit();
+        ship.action.data.isTrading = true;
+        ship.action.data.targetCityId = ship.action.data.targetCityId === ship.action.data.startCityId
+            ? ship.action.data.endCityId
+            : ship.action.data.startCityId;
+    }
+    else if (ship.action.currentAction === actionsTypes.wait) {
+        goToTrigger(ship);
+    }
+    else if (ship.action.currentAction === actionsTypes.trade) {
+        if (ship.action.data.isTrading) {
+            ship.action.isComplete = false;
+            ship.action.currentAction = actionsTypes.move;
+            ship.action.data.isTrading = false;
+            ship.action.data.targetCityId = ship.action.data.targetCityId === ship.action.data.startCityId
+                ? ship.action.data.endCityId
+                : ship.action.data.startCityId;
+
+            ship.callTrigger();
+            goToTrigger(ship);
+        }
+        else {
+            ship.action.isComplete = false;
+            ship.action.currentAction = actionsTypes.wait;
+            ship.action.data.waitTo = performance.now() + 10000 * ship.seed.unit();
+            ship.action.data.isTrading = true;
+
+            ship.callTrigger();
+            wait(ship);
+        }
+
+    }
+}
+
+function goToTrigger(ship) {
+    const cityId = ship.action.data.targetCityId;
+    const trigger = currentPlanet.cities[cityId].triggers.find(t => !t.owner);
+
+    ship.action.data.isNeedStop = true;
+    ship.action.data.range = 10;
+
+    if (trigger) {
+        ship.action.currentAction = actionsTypes.move;
+        ship.action.data.target = trigger.pos;
+    }
+    else {
+        ship.action.currentAction = actionsTypes.wait;
+        ship.action.data.waitTo = performance.now() + 5000;
     }
 }
