@@ -114,7 +114,7 @@ function createSystemPlanets(system) {
             size: config.minPlanetSize,
             currentSpeed: system.seed.unit() * 0.0001,
             currentAngle: system.seed.unit() * Math.PI * 2,
-            timestamp: performance.now(),
+            timestamp: Date.now(),
 
             isOpen: false,
             type: envTypes.planet,

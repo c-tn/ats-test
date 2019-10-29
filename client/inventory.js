@@ -519,7 +519,7 @@ function createItem(seed, type, level) {
             name: 'Weapon',
             description: `ls-${ level } type.`,
             type: itemTypes.weapon,
-            lastShot: performance.now(),
+            lastShot: Date.now(),
             price,
             stats: {
                 reload,

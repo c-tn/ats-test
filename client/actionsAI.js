@@ -7,6 +7,8 @@ const actionsTypes = {
 }
 
 function doShipAction(ship) {
+    if (!ship.action) return;
+    
     switch (ship.action.currentAction) {
         case actionsTypes.move    : moveTo(ship); break;
         case actionsTypes.patrol  : patrol(ship); break;
@@ -100,7 +102,7 @@ function rotateTo(ship, point) {
 }
 
 function wait(ship) {
-    if (ship.action.data.waitTo - performance.now() < 0) {
+    if (ship.action.data.waitTo - Date.now() < 0) {
         ship.action.isComplete = true;
         ship.action.currentAction = ship.action.regularAction;
     }
@@ -134,7 +136,7 @@ function trade(ship) {
 
         ship.action.isComplete = false;
         ship.action.currentAction = actionsTypes.trade;
-        ship.action.data.waitTo = performance.now() + 10000 * ship.seed.unit();
+        ship.action.data.waitTo = Date.now() + 10000 * ship.seed.unit();
         ship.action.data.isTrading = true;
         ship.action.data.targetCityId = ship.action.data.targetCityId === ship.action.data.startCityId
             ? ship.action.data.endCityId
@@ -158,7 +160,7 @@ function trade(ship) {
         else {
             ship.action.isComplete = false;
             ship.action.currentAction = actionsTypes.wait;
-            ship.action.data.waitTo = performance.now() + 10000 * ship.seed.unit();
+            ship.action.data.waitTo = Date.now() + 10000 * ship.seed.unit();
             ship.action.data.isTrading = true;
 
             ship.callTrigger();
@@ -181,6 +183,6 @@ function goToTrigger(ship) {
     }
     else {
         ship.action.currentAction = actionsTypes.wait;
-        ship.action.data.waitTo = performance.now() + 5000;
+        ship.action.data.waitTo = Date.now() + 5000;
     }
 }

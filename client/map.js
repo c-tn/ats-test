@@ -252,7 +252,21 @@ canvas.oncontextmenu = () => {
 }
 
 canvas.addEventListener('click', ({ offsetX, offsetY }) => {
-    if (!mapData.isOpen) return;
+    if (!mapData.isOpen) {
+        const coords = getCoordsOnMap({ offsetX, offsetY });
+        const btn = uiItems.find(btn =>
+            coords.canvasX > btn.x &&
+            coords.canvasX < btn.x + btn.w &&
+            coords.canvasY > btn.y &&
+            coords.canvasY < btn.y + btn.h
+        );
+
+        if (!btn) return;
+
+        btn.action();
+
+        return;
+    }
 
     const coords = getCoordsOnMap({ offsetX, offsetY });
 

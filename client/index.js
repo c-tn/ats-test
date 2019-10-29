@@ -68,12 +68,14 @@ canvas.width = 1280;
 canvas.height = 720;
 
 const ctx = canvas.getContext('2d');
+let socket = null;
 
 let envData = {
     chunks: [],
     current: {},
 };
 let bullets = [];
+let uiItems = [];
 
 const itemTypes = {
     weapon: 'weapon',
@@ -285,7 +287,7 @@ let fpsData = {
 const second = 1000;
 
 function showFPS() {
-    const now = performance.now();
+    const now = Date.now();
 
     if (now - fpsData.timeStamp > second) {
         fpsData.totalFrames = fpsData.currentFrames;
@@ -318,6 +320,21 @@ function setShadowsParam(offsetX, offsetY, blur, color) {
     ctx.shadowOffsetY = offsetY || 0;
     ctx.shadowBlur = blur || 0;
     ctx.shadowColor = color || 'rgba(0, 0, 0, 0)';
+}
+
+function drawButtons() {
+    for (let i = 0; i < uiItems.length; i++) {
+        const btn = uiItems[i];
+        
+        ctx.fillStyle = 'rgba(0, 0, 0, .5)';
+        ctx.fillRect(btn.x, btn.y, btn.w, btn.h);
+
+        ctx.font = '15px sans-serif';
+        ctx.textBaseline = 'middle';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#fff';
+        ctx.fillText(btn.text, btn.x + btn.w / 2, btn.y + btn.h / 2);
+    }
 }
 
 // UPDATING
@@ -360,12 +377,22 @@ function drawShips() {
             );
 
             ctx.rotate(ship.currentAngle + imageAngle);
+            
+            let sprite = ship.sprite;
 
-            const w = ship.sprite.width * ship.spriteSize;
-            const h = ship.sprite.height * ship.spriteSize;
+            if (socket) {
+                if (!sprites[ship.id]) {
+                    MP_createSprite(ship.id);
+                }
+
+                sprite = sprites[ship.id];
+            }
+
+            const w = sprite.width * ship.spriteSize;
+            const h = sprite.height * ship.spriteSize;
 
             ctx.drawImage(
-                ship.sprite,
+                sprite,
                 -w / 2,
                 -h / 2,
                 w,
@@ -396,7 +423,10 @@ function drawParticles() {
 }
 
 function updateShip(ship) {
-    if (ship.hp < 0) {
+    if (ship.isDead) return false;
+
+    if (ship.hp <= 0) {
+        ship.isDead = true;
         createParticles({
             x: ship.x,
             y: ship.y,
@@ -477,7 +507,7 @@ function updateShip(ship) {
     }
 
     if (ship.isShoting) {
-        const now = performance.now();
+        const now = Date.now();
 
         ship.inventory.forEach((cell, i) => {
             if (!cell.item || cell.type !== slotTypes.weapons) return;
@@ -492,7 +522,7 @@ function updateShip(ship) {
                     damage: cell.item.stats.damage
                 });
 
-                cell.item.lastShot = now;
+                cell.item.lastShot = Date.now();
             }
         });
     }
@@ -516,14 +546,33 @@ function createBullet({ x, y, currentAngle, ownerId, damage }) {
         currentAngle,
         damage,
         currentSpeed: 40,
-        createdTime: performance.now(),
+        createdTime: Date.now(),
         lifeTime: 2000
     });
 }
                
 function drawBullets() {
     setShadowsParam();
-    
+
+    if (socket) {
+        bullets.forEach(bullet => {
+            ctx.fillStyle = '#900';
+            
+            ctx.save();
+            ctx.translate(
+                bullet.x - camera.x + camera.width / 2,
+                bullet.y - camera.y + camera.height / 2
+            );
+
+            ctx.rotate(bullet.currentAngle);
+
+            ctx.fillRect(-25, 0, 50, 2);
+            ctx.restore();
+        });
+
+        return;
+    }
+
     bullets = bullets.filter(bullet => {
         ctx.fillStyle = '#900';
 
@@ -541,14 +590,18 @@ function drawBullets() {
             ctx.fillRect(-25, 0, 50, 2);
         ctx.restore();
         
-        const collideWith = envData.current.ships.find(ship =>
-            bullet.x > ship.x - ship.sprite.width / 2 &&
-            bullet.x < ship.x + ship.sprite.width / 2 &&
-            bullet.y > ship.y - ship.sprite.height / 2 &&
-            bullet.y < ship.y + ship.sprite.height / 2 &&
-            !ship.isLanding &&
-            ship.id !== bullet.ownerId
-        );
+        const collideWith = envData.current.ships.find(ship => {
+            const sprite = ship.sprite || sprites[ship.id];
+
+            if (!sprite) return;
+
+            return bullet.x > ship.x - sprite.width / 2 &&
+                bullet.x < ship.x + sprite.width / 2 &&
+                bullet.y > ship.y - sprite.height / 2 &&
+                bullet.y < ship.y + sprite.height / 2 &&
+                !ship.isLanding &&
+                ship.id !== bullet.ownerId
+        });
 
         if (collideWith) {
             createParticles({
@@ -579,7 +632,7 @@ function drawBullets() {
             collideWith.hp -= bullet.damage;
         }
 
-        const now = performance.now();
+        const now = Date.now();
 
         if (now - bullet.createdTime < bullet.lifeTime && !collideWith) {
             return bullet;
@@ -608,10 +661,15 @@ function gameLoop() {
 
     drawMap();
     drawInventory();
+    drawButtons();
 
     showModal();
 
     showFPS();
+
+    if (socket) {
+        multiplayerLoop();
+    }
 }
 
 function popPlayerShip() {
@@ -744,17 +802,30 @@ function changeShipState(ship, prop, value) {
 }
 
 function handleKey(e) {
-    const value = e.type === 'keydown'
+    const isKeyDown = e.type === 'keydown'
         ? true
         : false;
 
+    if (focusedInput) {
+        if (!isKeyDown) {
+            if (/^[a-zA-Zа-яА-Я-]{0,1}$/.test(e.key)) {
+                focusedInput.text += e.key;
+            }
+            else if (e.key === 'Backspace') {
+                focusedInput.text = focusedInput.text.slice(0, -1);
+            }
+        }
+
+        return;
+    }
+
     switch(e.which) {
         case keys.q:
-            changeShipState(playerShip, 'isSlowDown', value);
+            changeShipState(playerShip, 'isSlowDown', isKeyDown);
             break;
 
         case keys.w:
-            changeShipState(playerShip, 'isForward', value);
+            changeShipState(playerShip, 'isForward', isKeyDown);
             changeShipState(playerShip, 'isSlowDown', false);
             break;
 
@@ -769,11 +840,6 @@ function handleKey(e) {
                 ? !inventoryData.isOpen
                 : inventoryData.isOpen;
 
-            if (playerShip.currentTrigger && playerShip.currentTrigger.isOpen) {
-                playerShip.currentTrigger.isOpen = false;
-                inventoryData.isOpen = false;
-            }
-
             inventoryData.draggedCell = null;
             inventoryData.hoveredCell = null;
             inventoryData.inventoryOffsetY = 0;
@@ -781,16 +847,16 @@ function handleKey(e) {
             break;
 
         case keys.s:
-            changeShipState(playerShip, 'isBackward', value);
+            changeShipState(playerShip, 'isBackward', isKeyDown);
             changeShipState(playerShip, 'isSlowDown', false);
             break;
 
         case keys.a:
-            changeShipState(playerShip, 'isLeftRotate', value);
+            changeShipState(playerShip, 'isLeftRotate', isKeyDown);
             break;
 
         case keys.d:
-            changeShipState(playerShip, 'isRightRotate', value);
+            changeShipState(playerShip, 'isRightRotate', isKeyDown);
             break;
 
         case keys.l:
@@ -818,15 +884,15 @@ function handleKey(e) {
             break;
 
         case keys.space:
-            changeShipState(playerShip, 'isShoting', value);
+            changeShipState(playerShip, 'isShoting', isKeyDown);
             break;
 
         case keys.o:
-            value && wheelActions(-5);
+            isKeyDown && wheelActions(-5);
             break;
 
         case keys.p:
-            value && wheelActions(5);
+            isKeyDown && wheelActions(5);
             break;
 
         default:

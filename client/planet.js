@@ -26,7 +26,7 @@ function updatePlanet(planet) {
     if (planet.type === envTypes.sun) return;
 
     const oldTimestamp = planet.timestamp;
-    planet.timestamp = performance.now();
+    planet.timestamp = Date.now();
 
     const anglePerSecond = planet.currentSpeed * 60;
     const timeDif = planet.timestamp - oldTimestamp;

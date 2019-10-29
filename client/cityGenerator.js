@@ -942,7 +942,7 @@ function createTraders(data) {
                 targetCityId: endCityId,
                 startCityId,
                 endCityId,
-                waitTo: performance.now() + 1000 * ship.seed.unit()
+                waitTo: Date.now() + 1000 * ship.seed.unit()
             }
         }
 
