@@ -69,6 +69,7 @@ canvas.height = 720;
 
 const ctx = canvas.getContext('2d');
 let socket = null;
+let focusedInput = null;
 
 let envData = {
     chunks: [],

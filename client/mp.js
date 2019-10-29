@@ -4,7 +4,6 @@ let files = {
 }
 
 let currentCtrl;
-let focusedInput = null;
 let messages = [];
 
 function fileLoader(req) {
