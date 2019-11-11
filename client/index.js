@@ -195,7 +195,7 @@ const animationTypes = {
     landingOut: 'landing-out'
 }
 
-function createShip(seed) {
+function createShip(seed, race) {
     const seedNum = seed.unit();
     const seedStr = seedNum.toString(36).substr(2);
 
@@ -217,6 +217,7 @@ function createShip(seed) {
         velocity: 0.1,
         hp,
         money,
+        race,
 
         flyHeight: 40,
         currentAnimation: animationTypes.idle,
@@ -224,6 +225,7 @@ function createShip(seed) {
         isLanding: false,
 
         inventory: [],
+        relationship: {},
 
         canControl: true,
         isSlowDown: false,
@@ -631,6 +633,10 @@ function drawBullets() {
             });
 
             collideWith.hp -= bullet.damage;
+
+            if (bullet.ownerId === playerShip.id) {
+                currentPlanet.isAgressive = true;
+            }
         }
 
         const now = Date.now();

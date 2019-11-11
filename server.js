@@ -19,7 +19,9 @@ function multiplayer(req, res) {
 }
 
 app.listen(8081, () => {
-    console.log('started on 8081');
+    console.log('started.');
+    console.log('sp: http://localhost:8081/');
+    console.log('mp: http://localhost:8081/multiplayer');
 });
 
 let ws = new WebSocket.Server({
@@ -38,6 +40,8 @@ ws.on('connection', ws => {
     ws.userId = id;
 
     ws.on('close', () => {
+        deadShip(ws.userId);
+        
         delete clients[ws.userId];
     });
 

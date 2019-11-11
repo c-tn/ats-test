@@ -91,7 +91,11 @@ function createCities(planet) {
             cityId: planet.cities.length,
             buildings,
             planet,
-            ships
+            ships,
+            race: {
+                id: planet.owner.id,
+                name: planet.owner.name
+            }
         }, shipTypes.police);
 
         cityData.roads = segments;

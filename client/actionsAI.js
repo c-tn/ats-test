@@ -3,6 +3,7 @@ const actionsTypes = {
     destroy: 'destroy',
     wait: 'wait',
     patrol: 'patrol',
+    attack: 'attack',
     trade: 'trade'
 }
 
@@ -14,6 +15,7 @@ function doShipAction(ship) {
         case actionsTypes.patrol  : patrol(ship); break;
         case actionsTypes.trade   : trade(ship); break;
         case actionsTypes.wait    : wait(ship); break;
+        case actionsTypes.attack  : attackTarget(ship); break;
         case actionsTypes.destroy : break;
         default: break;
     }
@@ -27,6 +29,12 @@ function moveTo(ship) {
 
         return 0;
     };
+
+    if (currentPlanet && currentPlanet.isAgressive && ship.action.currentAction !== actionsTypes.attack) {
+        attackTarget(ship);
+
+        return;
+    }
 
     let data = ship.action.data;
 
@@ -185,4 +193,36 @@ function goToTrigger(ship) {
         ship.action.currentAction = actionsTypes.wait;
         ship.action.data.waitTo = Date.now() + 5000;
     }
+}
+
+function attackTarget(ship) {
+    const pos = [ playerShip.x, playerShip.y ];
+    const distance = Math.sqrt((ship.x - pos[0])**2 + (ship.y - pos[1])**2);
+
+    ship.isShoting = distance < 2000 && playerShip.hp > 0;
+
+    if (playerShip.hp <= 0) {
+        currentPlanet.isAgressive = false;
+        ship.action.currentAction = ship.action.regularAction;
+        
+        return;
+    }
+
+    const cityId = ship.action.data.targetCityId;
+
+    ship.action = {
+        regularAction: ship.action.regularAction,
+        currentAction: actionsTypes.attack,
+        isComplete: false,
+        data: {
+            ...ship.action.data,
+            isNeedStop: false,
+            range: 0,
+            maxSpeed: playerShip.currentSpeed,
+            target: pos,
+            targetCityId: cityId
+        }
+    };
+
+    moveTo(ship);
 }

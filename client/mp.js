@@ -118,7 +118,7 @@ let shop = {};
 let sprites = {};
 
 function sendSocketData(type, data) {
-    socket.send(JSON.stringify({
+    socket.readyState === WebSocket.OPEN && socket.send(JSON.stringify({
         type,
         data
     }));
@@ -245,6 +245,8 @@ function MP_createSprite(id) {
 
 window.onbeforeunload = () => {
     sendSocketData(socketMsgTypes.disconnect, playerShip.id);
+
+    socket.close();
 }
 
 function MP_updateGameData(message) {
@@ -295,14 +297,12 @@ function drawUI() {
 function multiplayerLoop() {
     drawUI();
 
-    if (socket.readyState) {
-        if (playerShip.isShoting) {
-            sendSocketData(socketMsgTypes.shot, getShipData(playerShip));
-        }
-    
-        sendSocketData(socketMsgTypes.updatePlayerData, getShipData(playerShip));
-        sendSocketData(socketMsgTypes.updateGameData, '');
+    if (playerShip.isShoting) {
+        sendSocketData(socketMsgTypes.shot, getShipData(playerShip));
     }
+
+    sendSocketData(socketMsgTypes.updatePlayerData, getShipData(playerShip));
+    sendSocketData(socketMsgTypes.updateGameData, '');
 }
 
 async function startMultiplayer(name) {
