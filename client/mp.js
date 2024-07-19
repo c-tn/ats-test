@@ -3,7 +3,6 @@ let files = {
     total: 0
 }
 
-let currentCtrl;
 let messages = [];
 
 function fileLoader(req) {
@@ -17,8 +16,6 @@ function fileLoader(req) {
             const name = await setName();
 
             await startMultiplayer(name);
-
-            currentCtrl = fpsCtrl(100, gameLoop);
         }
     });
 }

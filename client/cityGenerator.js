@@ -886,7 +886,7 @@ function createShips(data, type) {
 }
 
 function createPolice(data) {
-    const policeCount = ~~(data.buildings.length / 10);
+    const policeCount = ~~(data.buildings.length / 2);
 
     for (let i = 0; i < policeCount; i++) {
         let ship = createShip(data.planet.seed);
@@ -927,7 +927,7 @@ function createTraders(data) {
     });
 
     for (let i = 0; i < triggers.length; i++) {
-        if (seed.unit() > 0.5) continue;
+        if (seed.unit() > 0.8) continue;
 
         const pos = triggers[i].pos;
         const startCityId = ~~(data.seed.unit() * data.cities.length);

@@ -78,31 +78,6 @@ canvas.addEventListener('wheel', () => {
     calculateObjectPos(obj2)
 });
 
-let fpsData = {
-    wrapper: document.getElementById('fps__value'),
-    timeStamp: 0,
-    currentFrames: 0,
-    totalFrames: 0,
-    warnings: 0,
-    maxWarnings: 3
-}
-
-const second = 1000;
-
-function showFPS() {
-    const now = performance.now();
-
-    if (now - fpsData.timeStamp > second) {
-        fpsData.totalFrames = fpsData.currentFrames;
-
-        fpsData.timeStamp = now;
-
-        fpsData.currentFrames = 0;
-    }
-
-    fpsData.currentFrames++;
-
-    ctx.fillText(fpsData.totalFrames, 10, 10);
-}
+function showFPS() {}
 
 loop();

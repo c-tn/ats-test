@@ -29,40 +29,6 @@ function generateSprite({
     return resizedSprite;
 }
 
-function fpsCtrl(fps, callback) {
-    const second = 1000;
-
-    let delay = second / fps;
-    let time = null;
-    let frame = -1;
-
-    function loop(timestamp) {
-        if (time === null) {
-            time = timestamp;
-        }
-
-        const seg = Math.floor((timestamp - time) / delay);
-
-        if (seg > frame) {
-            frame = seg;
-            callback();
-        }
-
-        requestAnimationFrame(loop);
-    }
-
-    requestAnimationFrame(loop);
-
-    function setMaxFPS(fps) {
-        delay = second / fps;
-    }
-
-    return {
-        setMaxFPS,
-        selectedFPS: fps
-    }
-}
-
 const canvas = document.getElementById('canvas');
 canvas.width = 1280;
 canvas.height = 720;
@@ -278,44 +244,21 @@ console.log(seedValue);
 const seed = new RNG(seedValue);
 
 // FPS
-let fpsData = {
-    wrapper: document.getElementById('fps__value'),
-    timeStamp: 0,
-    currentFrames: 0,
-    totalFrames: 0,
-    warnings: 0,
-    maxWarnings: 3
+const fpsData = {
+    currentFrame: 0,
+    time: 0,
 }
 
-const second = 1000;
+const fpsElement = document.getElementById('fps__value')
 
 function showFPS() {
-    const now = Date.now();
-
-    if (now - fpsData.timeStamp > second) {
-        fpsData.totalFrames = fpsData.currentFrames;
-
-        fpsData.timeStamp = now;
-
-        fpsData.currentFrames = 0;
-
-        if (currentCtrl.selectedFPS < fpsData.totalFrames) {
-            fpsData.warnings++;
-
-            if (fpsData.warnings > fpsData.maxWarnings) {
-                currentCtrl.setMaxFPS(30);
-            }
-        }
-        else {
-            fpsData.warnings -= fpsData.warnings > 0
-                ? 1
-                : 0;
-        }
+    fpsData.currentFrame += 1;
+    if (performance.now() - fpsData.time > 1000) {
+        console.log('asd');
+        fpsElement.innerText = fpsData.currentFrame
+        fpsData.currentFrame = 0
+        fpsData.time = performance.now()
     }
-
-    fpsData.currentFrames++;
-
-    fpsData.wrapper.innerText = fpsData.totalFrames;
 }
 
 function setShadowsParam(offsetX, offsetY, blur, color) {
@@ -652,8 +595,6 @@ ctx.textAlign = 'center';
 
 // LOOP
 function gameLoop() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
     updateCameraData();
 
     drawLandscape();
@@ -677,6 +618,8 @@ function gameLoop() {
     if (socket) {
         multiplayerLoop();
     }
+
+    requestAnimationFrame(gameLoop)
 }
 
 function popPlayerShip() {

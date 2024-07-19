@@ -3,7 +3,6 @@ let files = {
     total: 0
 }
 
-let currentCtrl;
 
 function fileLoader(req) {
     files.total++;
@@ -14,7 +13,7 @@ function fileLoader(req) {
 
         if (files.loaded >= files.total) {
             await startGame();
-            currentCtrl = fpsCtrl(100, gameLoop);
+            gameLoop()
         }
     });
 }
